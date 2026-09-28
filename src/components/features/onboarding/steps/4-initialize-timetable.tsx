@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { motion, AnimatePresence } from "motion/react";
+import { motion } from "motion/react";
 import { resolveBatch } from "@/lib/timetable/core";
 import { Subject, TimetableSlot } from "@/domain/models";
 
@@ -7,7 +7,7 @@ const STAGES = [
   "Resolving Batch",
   "Loading Subjects",
   "Assigning Faculty",
-  "Generating Weekly Structure",
+  "Generating Structure",
   "Building Timetable"
 ];
 
@@ -21,7 +21,6 @@ export function StepInitializeTimetable({
   const [currentStage, setCurrentStage] = useState(0);
 
   useEffect(() => {
-    // Simulate computational delay for the editorial effect
     const totalStages = STAGES.length;
     let stage = 0;
     
@@ -31,59 +30,73 @@ export function StepInitializeTimetable({
       
       if (stage >= totalStages) {
         clearInterval(interval);
-        // Do the actual resolution
         setTimeout(() => {
           const { subjects, slots } = resolveBatch(batchId);
           onComplete(subjects, slots);
         }, 800);
       }
-    }, 700);
+    }, 800);
 
     return () => clearInterval(interval);
   }, [batchId, onComplete]);
 
   return (
-    <div className="flex flex-col w-full max-w-xl mx-auto mt-12 min-h-[50vh] justify-center">
-      <motion.div 
-        initial="hidden"
-        animate="visible"
-        variants={{
-          hidden: { opacity: 0 },
-          visible: { opacity: 1, transition: { staggerChildren: 0.2 } }
-        }}
-        className="flex flex-col gap-4 font-mono text-meta tracking-[0.1em] uppercase"
-      >
+    <div className="flex flex-col w-full h-[60vh] justify-center items-center px-6">
+      <div className="flex flex-col gap-6 w-full max-w-sm">
         {STAGES.map((stage, idx) => {
-          const isProcessing = currentStage === idx;
+          const isActive = currentStage === idx;
           const isDone = currentStage > idx;
           const isPending = currentStage < idx;
 
           return (
             <motion.div 
               key={stage}
-              variants={{
-                hidden: { opacity: 0, y: 10 },
-                visible: { opacity: 1, y: 0, transition: { ease: [0.22, 1, 0.36, 1], duration: 0.4 } }
-              }}
-              className={`flex items-center gap-4 transition-colors duration-300 ${
-                isPending ? 'text-ink-tertiary/30' : isProcessing ? 'text-ink-v2' : 'text-ink-tertiary'
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: idx * 0.1, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+              className={`flex items-center justify-between border-b pb-4 transition-colors duration-700 ${
+                isActive ? "border-ink-v2" : "border-line"
               }`}
             >
-              <span className="w-8 text-right opacity-50">
-                {String(idx + 1).padStart(2, '0')}
-              </span>
-              <span>{stage}</span>
-              {isProcessing && (
-                <motion.span 
-                  animate={{ opacity: [1, 0] }} 
-                  transition={{ repeat: Infinity, duration: 0.8 }}
-                  className="w-2 h-4 bg-ink-v2 ml-2"
-                />
-              )}
+              <div className="flex items-center gap-5">
+                 <span 
+                   className={`text-meta font-bold tabular-nums transition-colors duration-700 ${
+                     isActive ? "text-presynce" : isDone ? "text-ink-secondary" : "text-ink-tertiary/30"
+                   }`}
+                   style={{ fontFamily: "var(--font-data)" }}
+                 >
+                   {String(idx + 1).padStart(2, '0')}
+                 </span>
+                 <span 
+                   className={`text-micro font-bold tracking-[0.16em] uppercase transition-colors duration-700 ${
+                     isActive ? "text-ink-v2" : isDone ? "text-ink-secondary" : "text-ink-tertiary/40"
+                   }`}
+                 >
+                   {stage}
+                 </span>
+              </div>
+              
+              <div className="w-3 h-3 flex items-center justify-center shrink-0">
+                {isActive && (
+                  <motion.div 
+                    layoutId="active-indicator"
+                    className="w-2 h-2 bg-presynce rounded-full"
+                    animate={{ scale: [1, 1.8, 1], opacity: [1, 0.4, 1] }}
+                    transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }}
+                  />
+                )}
+                {isDone && (
+                  <motion.div 
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    className="w-1.5 h-1.5 bg-ink-v2 rounded-full opacity-20" 
+                  />
+                )}
+              </div>
             </motion.div>
           );
         })}
-      </motion.div>
+      </div>
     </div>
   );
 }

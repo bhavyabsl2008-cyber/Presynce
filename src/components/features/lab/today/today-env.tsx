@@ -391,7 +391,7 @@ function DecisionRow({
       />
 
       <div
-        className="relative flex items-center justify-between py-3 gap-3"
+        className="relative flex flex-col sm:flex-row items-start sm:items-center justify-between py-3 gap-3"
         role="group"
         aria-label={`${label}: ${pct}%`}
       >
@@ -402,8 +402,8 @@ function DecisionRow({
           onBlur={(e) => !e.currentTarget.contains(e.relatedTarget as Node) && onDeactivate()}
         >
           <span
-            className="text-micro font-bold tracking-[0.12em] uppercase text-ink-secondary shrink-0"
-            style={{ width: "7rem" }}
+            className="text-[0.6rem] sm:text-micro font-bold tracking-[0.12em] uppercase text-ink-secondary shrink-0 w-16 sm:w-28"
+            
           >
             {label}
           </span>
@@ -413,8 +413,8 @@ function DecisionRow({
             initial={{ opacity: 0.5 }}
             animate={{ opacity: 1 }}
             transition={fieldTransition}
-            className="text-body-strong font-bold tabular-nums text-ink-v2 shrink-0"
-            style={{ width: "3.75rem", fontFamily: "var(--font-data)" }}
+            className="text-body-strong font-bold tabular-nums text-ink-v2 shrink-0 w-12 sm:w-16"
+            style={{ fontFamily: "var(--font-data)" }}
           >
             {pct !== "--" ? `${pct}%` : pct}
           </motion.span>
@@ -432,7 +432,7 @@ function DecisionRow({
           onKeyDown={(e) => {
             if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onCommit(); }
           }}
-          className="shrink-0 px-4 py-2 text-micro font-bold tracking-[0.14em] uppercase
+          className="shrink-0 px-2 sm:px-4 py-2 text-[0.6rem] sm:text-micro font-bold tracking-[0.14em] uppercase w-full sm:w-auto text-center
             transition-colors duration-100 outline-none"
           style={{
             background: isActive
@@ -535,14 +535,16 @@ function LiveClock() {
     return () => clearInterval(timer);
   }, []);
 
-  const dateStr = now.toLocaleDateString("en-US", { weekday: "short", day: "2-digit", month: "short", year: "numeric" }).replace(/,/g, "").toUpperCase().replace(" ", " A ");
-  const timeStr = now.toLocaleTimeString("en-US", { hour: '2-digit', minute: '2-digit', hour12: true }).toUpperCase();
+  const dayStr = now.toLocaleDateString('en-US', { weekday: 'long' }).toUpperCase();
+  const dateStr = now.toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' }).toUpperCase();
+  const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }).toUpperCase();
 
   return (
-    <p className="text-micro font-bold tracking-[0.18em] uppercase text-ink-tertiary mt-2"
-      style={{ fontFamily: "var(--font-data)" }}>
-      {dateStr} A {timeStr}
-    </p>
+    <div className="mt-4 md:mt-2 flex flex-col gap-0.5">
+      <p className="text-meta font-bold tracking-[0.15em] uppercase text-ink-tertiary" style={{ fontFamily: 'var(--font-data)' }}>{dayStr}</p>
+      <p className="font-bold tracking-tight text-ink-v2 leading-none" style={{ fontSize: 'clamp(1.25rem, 4vw, 1.5rem)', fontFamily: 'var(--font-display)' }}>{dateStr}</p>
+      <p className="text-micro font-bold tracking-[0.18em] uppercase text-ink-tertiary mt-1" style={{ fontFamily: 'var(--font-data)' }}>{timeStr}</p>
+    </div>
   );
 }
 
@@ -631,7 +633,7 @@ export function TodayEnv() {
   if (isLoading) {
     return (
       <PageShell>
-        <div className="px-8 lg:px-12 pt-10 pb-8 flex flex-col min-h-[50vh] justify-center items-start">
+        <div className="px-5 md:px-8 lg:px-12 pt-10 pb-8 flex flex-col min-h-[50vh] justify-center items-start">
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -648,7 +650,7 @@ export function TodayEnv() {
   if (subjects.length === 0) {
     return (
       <PageShell>
-        <div className="px-8 lg:px-12 pt-10 pb-8 flex flex-col min-h-[50vh] justify-center items-start">
+        <div className="px-5 md:px-8 lg:px-12 pt-10 pb-8 flex flex-col min-h-[50vh] justify-center items-start">
           <p className="text-micro font-bold tracking-[0.18em] uppercase text-ink-tertiary mb-4"
              style={{ fontFamily: "var(--font-data)" }}>
             {new Date().toLocaleDateString("en-GB", { weekday: "long", day: "2-digit", month: "long", year: "numeric" }).replace(/,/g, "").toUpperCase().replace(" ", " A ")}
@@ -682,7 +684,7 @@ export function TodayEnv() {
           initial="hidden"
           animate="visible"
           custom={0}
-          className="px-8 lg:px-12 pt-10 pb-8 border-b border-line
+          className="px-5 md:px-8 lg:px-12 pt-10 pb-8 border-b border-line
             flex flex-col md:flex-row md:items-end justify-between gap-6"
         >
           <div>
@@ -743,7 +745,7 @@ export function TodayEnv() {
           initial="hidden"
           animate="visible"
           custom={1}
-          className="border-b border-line px-8 lg:px-12 py-5"
+          className="border-b border-line px-5 md:px-8 lg:px-12 py-5"
           style={{ background: "rgba(17,16,15,0.012)" }}
         >
           <DayTimeline subjects={subjects} onSelectSubject={setSelectedSubjectId} />
@@ -763,7 +765,7 @@ export function TodayEnv() {
               className="overflow-hidden border-b border-line"
             >
               <div
-                className="px-8 lg:px-12 py-3 flex flex-col sm:flex-row sm:items-center
+                className="px-5 md:px-8 lg:px-12 py-3 flex flex-col sm:flex-row sm:items-center
                   justify-between gap-3"
                 style={{ borderLeft: "2px solid var(--color-danger)" }}
               >
@@ -848,7 +850,7 @@ export function TodayEnv() {
             initial="hidden"
             animate="visible"
             custom={2}
-            className="border-b border-line px-8 lg:px-12 py-8"
+            className="border-b border-line px-5 md:px-8 lg:px-12 py-8"
           >
             <div className="flex flex-col lg:flex-row lg:gap-16">
 
@@ -1013,7 +1015,7 @@ export function TodayEnv() {
             initial="hidden"
             animate="visible"
             custom={3}
-            className="border-b border-line px-8 lg:px-12 py-8"
+            className="border-b border-line px-5 md:px-8 lg:px-12 py-8"
           >
             <div className="flex flex-col lg:flex-row lg:gap-16">
 

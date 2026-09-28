@@ -39,7 +39,7 @@ export function SubjectCard({ subject }: { subject: SemesterSubject }) {
   return (
     <div className="border border-line bg-paper flex flex-col mb-8 relative">
       {/* Header */}
-      <div className="p-6 md:p-8 flex flex-col sm:flex-row justify-between sm:items-start gap-4">
+      <div className="p-4 md:p-8 flex flex-col sm:flex-row justify-between sm:items-start gap-4">
         <div>
           <h2 className="text-body-strong font-bold text-ink-v2 mb-1" style={{ fontSize: "clamp(1.5rem, 3vw, 2rem)", fontFamily: "var(--font-display)" }}>
             {subject.name}
@@ -56,14 +56,14 @@ export function SubjectCard({ subject }: { subject: SemesterSubject }) {
         </div>
         <Link 
           href={`/semester/${subject.id}`} 
-          className="inline-flex items-center gap-2 text-micro font-bold tracking-[0.14em] uppercase text-ink-secondary hover:text-ink-v2 transition-colors border border-line px-4 py-2 hover:bg-surface-v2 shrink-0 self-start"
+          className="inline-flex items-center gap-2 text-micro font-bold tracking-[0.14em] uppercase text-ink-secondary hover:text-ink-v2 transition-colors border border-line px-4 py-2 hover:bg-surface-v2 shrink-0 sm:self-start w-full sm:w-auto text-center justify-center"
         >
           <span>EDIT / VIEW</span>
         </Link>
       </div>
 
       {/* Main Stats */}
-      <div className="px-6 md:px-8 pb-8 flex flex-col md:flex-row md:items-end gap-8 border-b border-line">
+      <div className="px-4 md:px-8 pb-8 flex flex-col md:flex-row md:items-end gap-8 border-b border-line">
         <div className="flex-1">
           <div className="flex justify-between items-baseline mb-4">
             <span className="text-[3rem] md:text-[4rem] font-bold tabular-nums text-ink-v2 leading-none" style={{ fontFamily: "var(--font-data)" }}>
@@ -122,7 +122,7 @@ export function SubjectCard({ subject }: { subject: SemesterSubject }) {
       </div>
 
             {showLeaves && subjectRecords.length > 0 && (
-        <div className="bg-surface-v2 border-b border-line p-6 flex flex-col gap-4">
+        <div className="bg-surface-v2 border-b border-line p-4 sm:p-6 flex flex-col gap-4">
           <h3 className="text-micro font-bold tracking-[0.14em] uppercase text-ink-secondary border-b border-line pb-2">Leave History Audit</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {subjectRecords.map(r => {
@@ -148,19 +148,19 @@ export function SubjectCard({ subject }: { subject: SemesterSubject }) {
         <div className="flex border-r border-line sm:border-b-0 border-b">
           <button 
             onClick={() => setSimMode("attend")} 
-            className={`px-6 py-4 md:py-5 text-micro font-bold tracking-[0.14em] uppercase transition-colors flex-1 sm:flex-none ${simMode === 'attend' ? 'bg-ink-v2 text-paper' : 'hover:bg-ink-v2/5 text-ink-secondary'}`}
+            className={`px-4 sm:px-6 py-4 md:py-5 text-micro font-bold tracking-[0.14em] uppercase transition-colors flex-1 sm:flex-none ${simMode === 'attend' ? 'bg-ink-v2 text-paper' : 'hover:bg-ink-v2/5 text-ink-secondary'}`}
           >
             ATTEND NEXT
           </button>
           <button 
             onClick={() => setSimMode("skip")} 
-            className={`px-6 py-4 md:py-5 text-micro font-bold tracking-[0.14em] uppercase transition-colors flex-1 sm:flex-none ${simMode === 'skip' ? 'bg-ink-v2 text-paper' : 'hover:bg-ink-v2/5 text-ink-secondary'}`}
+            className={`px-4 sm:px-6 py-4 md:py-5 text-micro font-bold tracking-[0.14em] uppercase transition-colors flex-1 sm:flex-none ${simMode === 'skip' ? 'bg-ink-v2 text-paper' : 'hover:bg-ink-v2/5 text-ink-secondary'}`}
           >
             SKIP NEXT
           </button>
         </div>
 
-        <div className="flex items-center flex-1 justify-between px-6 py-4 border-b sm:border-b-0 border-line sm:border-r">
+        <div className="flex items-center flex-1 justify-between px-4 sm:px-6 py-4 border-b sm:border-b-0 border-line sm:border-r">
            <div className="flex items-center gap-4">
              <button 
                 onClick={() => setSimCount(Math.max(0, simCount - 1))} 
@@ -177,7 +177,7 @@ export function SubjectCard({ subject }: { subject: SemesterSubject }) {
            <span className="text-micro font-bold tracking-[0.18em] uppercase text-ink-tertiary">CLASSES</span>
         </div>
 
-        <div className="px-6 py-4 flex flex-col justify-center items-end min-w-[160px] bg-paper shrink-0">
+        <div className="px-4 sm:px-6 py-4 flex flex-col justify-center items-end min-w-[160px] bg-paper shrink-0">
            <span className="text-[10px] font-bold tracking-[0.1em] uppercase text-ink-tertiary mb-1">PROJECTED</span>
            <div className="flex items-baseline gap-2">
              <span className={`text-[1.75rem] font-bold tabular-nums leading-none ${projectedColor}`} style={{ fontFamily: "var(--font-data)" }}>
@@ -189,7 +189,7 @@ export function SubjectCard({ subject }: { subject: SemesterSubject }) {
 
       {/* Best / Worst Case Outcomes */}
       <div className="bg-paper flex flex-col sm:flex-row divide-y sm:divide-y-0 sm:divide-x divide-line">
-        <div className="flex-1 p-6 flex flex-col">
+        <div className="flex-1 p-4 sm:p-6 flex flex-col">
           <span className="text-micro font-bold tracking-[0.18em] uppercase text-ink-tertiary mb-2">WORST CASE</span>
           {subject.remainingClasses !== null && subject.remainingClasses !== undefined ? (
              <div className="flex justify-between items-baseline">
@@ -206,7 +206,7 @@ export function SubjectCard({ subject }: { subject: SemesterSubject }) {
              <span className="text-meta text-ink-tertiary italic">Remaining timetable cannot be determined</span>
           )}
         </div>
-        <div className="flex-1 p-6 flex flex-col">
+        <div className="flex-1 p-4 sm:p-6 flex flex-col">
           <span className="text-micro font-bold tracking-[0.18em] uppercase text-ink-tertiary mb-2">BEST CASE</span>
           {subject.remainingClasses !== null && subject.remainingClasses !== undefined ? (
              <div className="flex justify-between items-baseline">

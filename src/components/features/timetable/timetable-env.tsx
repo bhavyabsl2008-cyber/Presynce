@@ -245,8 +245,8 @@ export function TimetableEnv() {
         </header>
 
         <div className="flex-1 overflow-auto border border-line bg-paper">
-          <table className="w-full text-left border-collapse table-fixed">
-            <thead>
+          <table className="w-full text-left border-collapse block md:table table-fixed">
+            <thead className="hidden md:table-header-group">
               <tr>
                 <th className="p-4 border-b border-r border-line bg-surface-v2 text-meta font-bold uppercase tracking-widest text-ink-secondary w-32">Day</th>
                 <th className="p-4 border-b border-line bg-surface-v2 text-meta font-bold uppercase tracking-widest text-ink-secondary">Schedule</th>
@@ -258,8 +258,8 @@ export function TimetableEnv() {
                 const activeEditing = isEditing && viewMode === "personal";
                 
                 return (
-                  <tr key={day} className="border-b border-line hover:bg-surface/30">
-                    <td className="p-4 align-middle border-r border-line text-body-strong font-bold text-ink-v2 w-32">{day}</td>
+                  <tr key={day} className="border-b border-line hover:bg-surface/30 flex flex-col md:table-row">
+                    <td className="p-4 align-middle md:border-r border-line text-body-strong font-bold text-ink-v2 md:w-32 bg-surface-v2 md:bg-transparent">{day}</td>
                     <td className="p-4">
                       {daySlots.length === 0 ? (
                         <div className="flex items-center h-full min-h-[82px]">
@@ -274,7 +274,7 @@ export function TimetableEnv() {
                           )}
                         </div>
                       ) : (
-                        <div className="flex flex-nowrap items-stretch gap-3 overflow-x-auto pb-2 -mb-2">
+                        <div className="flex flex-col md:flex-row md:flex-nowrap items-stretch gap-3 md:overflow-x-auto pb-2 md:-mb-2">
                           {daySlots.map((slot, i) => {
                             const sub = subjects.find(s => s.id === slot.subjectId);
                             const elements = [];
@@ -292,7 +292,7 @@ export function TimetableEnv() {
                                       <span className="text-[0.65rem] tabular-nums">09:00-{slot.startTime}</span>
                                     </button>
                                   ) : (
-                                    <div className="flex flex-col items-center justify-center border border-presynce/30 bg-presynce-soft/30 px-6 min-w-[90px]">
+                                    <div className="flex flex-col items-center justify-center border border-presynce/30 bg-presynce-soft/30 px-6 py-2 md:py-0 min-w-[90px] min-h-[40px] md:min-h-0">
                                       <span className="text-micro font-bold tracking-[0.16em] uppercase text-presynce">{slot.startTime >= "14:00" ? "LUNCH BREAK" : "FREE"}</span>
                                     </div>
                                   )}
@@ -312,7 +312,7 @@ export function TimetableEnv() {
                                         <span className="text-[0.65rem] tabular-nums">{prev.endTime}-{slot.startTime}</span>
                                       </button>
                                     ) : (
-                                      <div className="flex flex-col items-center justify-center border border-presynce/30 bg-presynce-soft/30 px-6 min-w-[90px]">
+                                      <div className="flex flex-col items-center justify-center border border-presynce/30 bg-presynce-soft/30 px-6 py-2 md:py-0 min-w-[90px] min-h-[40px] md:min-h-0">
                                         <span className="text-micro font-bold tracking-[0.16em] uppercase text-presynce">{prev.endTime <= "13:00" && slot.startTime >= "14:00" ? "LUNCH BREAK" : "FREE"}</span>
                                       </div>
                                     )}
@@ -326,7 +326,7 @@ export function TimetableEnv() {
                               <div 
                                 key={slot.id} 
                                 onClick={() => activeEditing && openEditModal(slot)}
-                                className={`relative flex flex-col p-3 border min-w-[160px] max-w-[220px] shrink-0 transition-colors ${
+                                className={`relative flex flex-col p-3 border min-w-[160px] md:max-w-[220px] w-full md:w-auto shrink-0 transition-colors ${
                                   activeEditing
                                     ? "border-presynce bg-presynce-soft cursor-pointer hover:bg-presynce-field" 
                                     : "border-line bg-paper"
@@ -343,7 +343,7 @@ export function TimetableEnv() {
                                 <div className="flex items-center justify-between mt-auto pt-2">
                                   <span className="text-[0.7rem] font-bold text-ink-tertiary flex gap-1.5 items-center">
                                     <span>{sub?.shortLabel || sub?.code}</span>
-                                    <span aria-hidden>-</span>
+                                    <span aria-hidden>·</span>
                                     <span>{slot.type}</span>
                                   </span>
                                   {slot.room && <span className="text-[0.7rem] text-ink-secondary font-bold">{slot.room}</span>}

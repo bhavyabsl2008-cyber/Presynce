@@ -84,7 +84,7 @@ export function YouEnv() {
           initial="hidden"
           animate="visible"
           custom={0}
-          className="px-8 lg:px-12 pt-10 pb-8 border-b border-line flex flex-col md:flex-row justify-between gap-8"
+          className="px-5 md:px-8 lg:px-12 pt-10 pb-8 border-b border-line flex flex-col md:flex-row justify-between gap-8"
         >
           <div className="flex-1 max-w-2xl">
             <h1
@@ -109,7 +109,7 @@ export function YouEnv() {
           initial="hidden"
           animate="visible"
           custom={1}
-          className="px-8 lg:px-12 py-10 border-b border-line"
+          className="px-5 md:px-8 lg:px-12 py-10 border-b border-line"
         >
            <span className="text-micro font-bold tracking-[0.18em] uppercase text-ink-tertiary mb-6 block">SYSTEM CONFIGURATION</span>
            
@@ -147,7 +147,7 @@ export function YouEnv() {
           initial="hidden"
           animate="visible"
           custom={2}
-          className="px-8 lg:px-12 py-10 border-b border-line"
+          className="px-5 md:px-8 lg:px-12 py-10 border-b border-line"
         >
           <span className="text-micro font-bold tracking-[0.18em] uppercase text-ink-tertiary mb-6 block">CHALKPAD SYNC</span>
 
@@ -309,7 +309,7 @@ export function YouEnv() {
           initial="hidden"
           animate="visible"
           custom={3}
-          className="px-8 lg:px-12 py-10"
+          className="px-5 md:px-8 lg:px-12 py-10"
         >
            <div className="flex flex-col gap-4 max-w-xl">
                <span className="text-body-strong font-bold text-danger">

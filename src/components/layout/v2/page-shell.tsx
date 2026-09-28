@@ -49,6 +49,7 @@ export function PageShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-paper text-ink-v2 font-sans flex flex-col relative overflow-x-hidden">
 
+<<<<<<< HEAD
       {/* Structural Grid â€” Lab A: 4rem cells, 4% opacity */}
       <div
         className="fixed inset-0 pointer-events-none z-0"
@@ -60,6 +61,33 @@ export function PageShell({ children }: { children: React.ReactNode }) {
           backgroundSize: "4rem 4rem",
         }}
       />
+=======
+      {/* Structural Grid — Lab A: 4rem cells, 4% opacity */}
+      <div className="fixed inset-0 pointer-events-none z-0" aria-hidden>
+        {/* Base fine grid with radial fade for depth */}
+        <div 
+          className="absolute inset-0"
+          style={{
+            backgroundImage:
+              "linear-gradient(to right, var(--color-grid, rgba(17,16,15,0.04)) 1px, transparent 1px)," +
+              "linear-gradient(to bottom, var(--color-grid, rgba(17,16,15,0.04)) 1px, transparent 1px)",
+            backgroundSize: "4rem 4rem",
+            maskImage: "radial-gradient(ellipse at 50% 0%, black 0%, transparent 90%)",
+            WebkitMaskImage: "radial-gradient(ellipse at 50% 0%, black 0%, transparent 90%)"
+          }}
+        />
+        {/* Larger structural divisions for editorial hierarchy */}
+        <div 
+          className="absolute inset-0"
+          style={{
+            backgroundImage:
+              "linear-gradient(to right, var(--color-grid, rgba(17,16,15,0.06)) 1px, transparent 1px)",
+            backgroundSize: "16rem 100%",
+            maskImage: "linear-gradient(to bottom, black 0%, transparent 40%)",
+            WebkitMaskImage: "linear-gradient(to bottom, black 0%, transparent 40%)"
+          }}
+        />
+      </div>
 
       <PrimaryNav />
 

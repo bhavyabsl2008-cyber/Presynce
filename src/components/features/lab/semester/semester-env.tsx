@@ -198,11 +198,11 @@ export function SemesterEnv() {
           custom={1}
           className="px-8 lg:px-12 py-8"
         >
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-8 gap-4">
-             <div className="flex items-center gap-6">
-                <div className="flex flex-col gap-2">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-6 md:mb-8 gap-6 md:gap-4">
+             <div className="flex items-center gap-6 w-full md:w-auto">
+                <div className="flex flex-col gap-2 w-full md:w-auto">
                   <span className="text-micro font-bold tracking-[0.18em] uppercase text-ink-tertiary">FILTER</span>
-                  <div className="flex flex-wrap gap-4">
+                  <div className="flex flex-row overflow-x-auto no-scrollbar gap-4 md:gap-4 md:flex-wrap">
                      {(["all", "safe", "warn", "danger"] as const).map(f => (
                        <button 
                          key={f}
@@ -216,9 +216,9 @@ export function SemesterEnv() {
                 </div>
              </div>
              
-             <div className="flex flex-col gap-2 sm:items-end">
+             <div className="flex flex-col gap-2 md:items-end w-full md:w-auto">
                 <span className="text-micro font-bold tracking-[0.18em] uppercase text-ink-tertiary">SORT BY</span>
-                <div className="flex flex-wrap gap-4">
+                <div className="flex flex-row overflow-x-auto no-scrollbar gap-4 md:gap-4 md:flex-wrap">
                    {(["risk", "attendance", "name"] as const).map(s => (
                      <button 
                        key={s}
