@@ -1,4 +1,4 @@
-# Presynce V2
+﻿# Presynce V2
 
 Attendance intelligence platform for Chitkara University CSE students.
 A complete, from-scratch rebuild of the production V1 app, achieving a full structural, architectural, and visual overhaul.
@@ -17,14 +17,9 @@ Presynce V2 has officially reached its release milestone. The architecture, UI/U
 - **The Today Experience**: A timeline-driven, day-centric environment that filters noise and focuses purely on immediate scheduled classes and near-term attendance consequences.
 - **Pristine Timetable Architecture**: Distinct core schedule management vs. daily active class views.
 
-## Running locally
+## Live App
 
-`ash
-npm install
-npm run dev
-`
-
-Open [http://localhost:3000](http://localhost:3000).
+Presynce V2 is live and accessible at **[presynce.in](https://presynce.in)**.
 
 ## Testing & Build
 
@@ -32,3 +27,4 @@ Open [http://localhost:3000](http://localhost:3000).
 npm test
 npm run build
 `
+
