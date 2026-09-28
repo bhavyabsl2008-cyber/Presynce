@@ -1,0 +1,25 @@
+{
+  "manifest_version": 3,
+  "name": "Presynce · Chalkpad Sync",
+  "version": "2.0.0",
+  "description": "Automatically bridges attendance data from Chalkpad to Presynce. No credentials are stored.",
+  "permissions": [
+    "storage"
+  ],
+  "host_permissions": [
+    "https://quiet.codebrigade.in/*",
+    "http://localhost:3000/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["https://quiet.codebrigade.in/chalkpadpro/studentDetails/display*"],
+      "js": ["content-chalkpad.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["http://localhost:3000/*"],
+      "js": ["content-presynce.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}
