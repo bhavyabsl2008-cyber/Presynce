@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+﻿import type { Metadata, Viewport } from "next";
 import { Manrope, IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -21,7 +21,20 @@ const plexMono = IBM_Plex_Mono({
   weight: ["500", "600"],
 });
 
+export const viewport: Viewport = {
+  themeColor: '#11100F',
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+};
+
 export const metadata: Metadata = {
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'Presynce',
+  },
   title: "Presynce",
   description: "Attendance, without the anxiety.",
 };
@@ -42,3 +55,4 @@ export default function RootLayout({
     </html>
   );
 }
+

@@ -1,8 +1,9 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { PrimaryNav } from "./primary-nav";
+import { InstallPrompt } from "@/components/features/pwa/install-prompt";
 import { useStore } from "@/store";
 import { AnimatePresence, motion } from "motion/react";
 import { TRANSITION_PAGE } from "@/lib/motion";
@@ -14,7 +15,7 @@ import { useStartupSync } from "@/hooks/useStartupSync";
  * Provides: structural grid background, navigation injection,
  * semantic canvas color, mobile bottom nav padding.
  *
- * Grid is rendered at 4% opacity — felt subconsciously,
+ * Grid is rendered at 4% opacity â€” felt subconsciously,
  * not constantly noticed. 4rem (64px) cell matches Lab A.
  *
  * Do not modify this for page-specific layout needs.
@@ -48,7 +49,7 @@ export function PageShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-paper text-ink-v2 font-sans flex flex-col relative overflow-x-hidden">
 
-      {/* Structural Grid — Lab A: 4rem cells, 4% opacity */}
+      {/* Structural Grid â€” Lab A: 4rem cells, 4% opacity */}
       <div
         className="fixed inset-0 pointer-events-none z-0"
         aria-hidden
@@ -62,7 +63,7 @@ export function PageShell({ children }: { children: React.ReactNode }) {
 
       <PrimaryNav />
 
-      {/* Content area — z-10 floats above the grid */}
+      {/* Content area â€” z-10 floats above the grid */}
       {/* pb-20: mobile bottom nav clearance */}
       <main
         id="main-content"
@@ -85,3 +86,4 @@ export function PageShell({ children }: { children: React.ReactNode }) {
     </div>
   );
 }
+
