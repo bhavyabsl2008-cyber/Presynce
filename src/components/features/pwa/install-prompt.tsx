@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { X } from "lucide-react";
+import { X, Download } from "lucide-react";
 
 export function InstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
@@ -15,12 +15,10 @@ export function InstallPrompt() {
     }
     if (typeof window === "undefined") return;
 
-    // Hide if already installed (standalone mode)
     if (window.matchMedia("(display-mode: standalone)").matches || ('standalone' in window.navigator && (window.navigator as any).standalone)) {
       return;
     }
 
-    // Hide if dismissed recently (e.g. 7 days)
     const dismissedAt = localStorage.getItem("presynce_pwa_dismissed");
     if (dismissedAt) {
       const days = (Date.now() - parseInt(dismissedAt)) / (1000 * 60 * 60 * 24);
@@ -30,16 +28,16 @@ export function InstallPrompt() {
     const handler = (e: any) => {
       e.preventDefault();
       setDeferredPrompt(e);
-      setShow(true);
     };
 
     window.addEventListener("beforeinstallprompt", handler);
 
-    // iOS manual prompt detection
     const isIos = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
     if (isIos && !dismissedAt) {
         setIsIosManual(true);
-        setShow(true);
+        setTimeout(() => setShow(true), 1500);
+    } else {
+        setTimeout(() => setShow(true), 1500);
     }
 
     return () => window.removeEventListener("beforeinstallprompt", handler);
@@ -60,43 +58,50 @@ export function InstallPrompt() {
     setShow(false);
   };
 
-  if (!show) return null;
+  if (!show || (!deferredPrompt && !isIosManual)) return null;
 
   return (
     <AnimatePresence>
       <motion.div
-        initial={{ opacity: 0, y: 50 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: 50 }}
-        className="fixed bottom-24 left-4 right-4 md:left-auto md:right-8 md:w-96 bg-ink-v2 text-paper p-4 flex items-center justify-between gap-4 z-50 shadow-xl border-t-2 border-presynce"
+        initial={{ opacity: 0, y: 50, scale: 0.95 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: 50, scale: 0.95 }}
+        transition={{ type: "spring", stiffness: 400, damping: 30 }}
+        className="fixed bottom-24 left-4 right-4 md:left-auto md:right-8 md:bottom-8 md:w-[400px] bg-paper text-ink border border-line shadow-2xl p-6 z-50 rounded-none"
       >
-        <div className="flex flex-col">
-          <span className="font-bold text-meta tracking-[0.14em] uppercase text-presynce-soft">Install Presynce</span>
-          <span className="text-micro opacity-80 mt-1 leading-relaxed">
-            {isIosManual && !deferredPrompt 
-              ? "Tap Share → Add to Home Screen for the full app experience." 
-              : "Add to Home Screen for the full app experience."}
-          </span>
+        <button
+          onClick={handleDismiss}
+          className="absolute top-4 right-4 p-1.5 text-ink-tertiary hover:text-ink transition-colors"
+          aria-label="Dismiss"
+        >
+          <X className="w-5 h-5" />
+        </button>
+        
+        <div className="flex items-start gap-4 mb-6">
+          <div className="w-12 h-12 bg-presynce-soft flex items-center justify-center shrink-0 border border-presynce/20">
+            <Download className="w-6 h-6 text-presynce" />
+          </div>
+          <div className="flex flex-col pt-0.5 pr-6">
+            <h3 className="font-bold text-body-strong leading-tight">Add Presynce to your Home Screen</h3>
+            <p className="text-meta text-ink-secondary mt-1.5 leading-relaxed">
+              Get faster access to your attendance, timetable and daily classes.
+            </p>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          {!isIosManual || deferredPrompt ? (
-            <button
-              onClick={handleInstall}
-              className="bg-presynce text-white px-3 py-2 font-bold text-micro tracking-widest uppercase hover:bg-presynce-hover transition-colors whitespace-nowrap"
-            >
-              Install
-            </button>
-          ) : null}
+
+        {isIosManual && !deferredPrompt ? (
+          <div className="bg-surface p-4 text-meta text-ink-secondary border border-line leading-relaxed">
+            Tap the <span className="font-bold text-ink">Share</span> button at the bottom of Safari, then select <span className="font-bold text-ink">Add to Home Screen</span>.
+          </div>
+        ) : (
           <button
-            onClick={handleDismiss}
-            className="p-2 text-paper/60 hover:text-paper transition-colors"
-            aria-label="Dismiss"
+            onClick={handleInstall}
+            className="w-full bg-presynce text-white py-4 font-bold text-micro tracking-[0.14em] uppercase hover:bg-presynce-hover transition-colors shadow-sm"
           >
-            <X className="w-4 h-4" />
+            Add to Home Screen
           </button>
-        </div>
+        )}
       </motion.div>
     </AnimatePresence>
   );
 }
-

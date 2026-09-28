@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -15,6 +15,7 @@ const NAV_ITEMS_DESKTOP = [
 const NAV_ITEMS_MOBILE = [
   { label: "TODAY", href: "/today" },
   { label: "TIMETABLE", href: "/timetable" },
+  { label: "SEMESTER", href: "/semester" },
   { label: "YOU", href: "/you" },
 ];
 
@@ -28,7 +29,7 @@ export function PrimaryNav() {
 
   return (
     <>
-      {/* ─── Desktop Top Bar ─────────────────────────────────── */}
+      {/* â”€â”€â”€ Desktop Top Bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <nav
         className="hidden md:flex sticky top-0 z-50 items-center h-14 px-8 lg:px-12 bg-paper border-b border-line"
         aria-label="Primary navigation"
@@ -38,7 +39,7 @@ export function PrimaryNav() {
           <Link
             href="/today"
             className="flex items-center gap-2.5 text-ink-v2 hover:text-presynce transition-colors"
-            aria-label="Presynce — go to Today"
+            aria-label="Presynce â€” go to Today"
           >
             <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden>
               <rect x="0.5" y="0.5" width="17" height="17" stroke="currentColor" strokeWidth="1.5" />
@@ -90,7 +91,7 @@ export function PrimaryNav() {
         </div>
       </nav>
 
-      {/* ─── Mobile Bottom Tab Bar ───────────────────────────── */}
+      {/* â”€â”€â”€ Mobile Bottom Tab Bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <nav
         className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-surface-v2 border-t border-line"
         aria-label="Primary navigation"
@@ -133,3 +134,4 @@ export function PrimaryNav() {
     </>
   );
 }
+
