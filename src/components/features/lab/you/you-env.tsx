@@ -302,7 +302,34 @@ export function YouEnv() {
         </motion.section>
 
         {/* ══════════════════════════════════════════════════════════════════
-            §4  DANGER ZONE
+            §4  CREDITS
+        ══════════════════════════════════════════════════════════════════ */}
+        <motion.section
+          variants={sectionVariants}
+          initial="hidden"
+          animate="visible"
+          custom={3}
+          className="px-5 md:px-8 lg:px-12 py-10 border-b border-line"
+        >
+          <span className="text-micro font-bold tracking-[0.18em] uppercase text-ink-tertiary mb-6 block">
+            CREDITS
+          </span>
+
+          <div className="max-w-xl flex flex-col gap-3">
+            <h2 className="text-[1.5rem] md:text-[1.75rem] font-bold tracking-tight text-ink-v2">
+              Special thanks to Pranavi Salwan
+            </h2>
+            <p className="text-body-v2 text-ink-secondary leading-relaxed">
+              Presynce&apos;s design and visual identity were shaped significantly
+              by her ideas, feedback, and contribution to its UI direction.
+              A large part of what Presynce looks and feels like today would not
+              have been possible without her.
+            </p>
+          </div>
+        </motion.section>
+
+        {/* ══════════════════════════════════════════════════════════════════
+            §5  DANGER ZONE
         ══════════════════════════════════════════════════════════════════ */}
         <motion.section
           variants={sectionVariants}
