@@ -1,4 +1,4 @@
-import { create } from 'zustand';
+﻿import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { Student, Subject, TimetableSlot, AttendanceRecord, LeaveRequest, AttendanceEvent } from '@/domain/models';
 import { SyncMeta } from '@/services/sync/types';
@@ -86,6 +86,7 @@ export const useStore = create<PresynceState>()(
             baseAttendance: {
               attended,
               dl,
+              ml,
               delivered,
               dataAsOf,
               lastUpdated,
@@ -152,6 +153,7 @@ export const useStore = create<PresynceState>()(
     }
   )
 );
+
 
 
 

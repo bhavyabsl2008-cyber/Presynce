@@ -594,11 +594,6 @@ export class ChalkpadMobileService {
       throw new Error("Attendance HTML was received but no subject boxes were found.");
     }
 
-    // RAW HTML DIAGNOSTIC - logs to stderr, visible in Next.js terminal
-    console.error(`[Chalkpad RAW DIAG] HTML length: ${html.length} | Box count: ${boxParts.length - 1}`);
-    if (boxParts.length >= 2) {
-      console.error(`[Chalkpad RAW DIAG] First box raw HTML (800 chars):\n${boxParts[1].substring(0, 800)}`);
-    }
 
     const payloads: ChalkpadBridgePayload[] = [];
     const dataAsOf = new Date().toISOString().split("T")[0];
@@ -638,12 +633,6 @@ export class ChalkpadMobileService {
       const ml = this.getNumber(mlText);
       const percentage = this.getPercentage(percentageText);
 
-      // PER-SUBJECT DIAGNOSTIC (check Next.js dev server terminal)
-      console.error(
-        `[Chalkpad PARSE DIAG] #${i} "${subjectName}" (${subjectCode}) | ` +
-        `delivered=${delivered} attended=${attended} dl=${dl} pct=${percentage} | ` +
-        `boxText(350)="${boxText.substring(0, 350)}"`
-      );
 
       payloads.push({
         subjectName,
@@ -662,11 +651,6 @@ export class ChalkpadMobileService {
       throw new Error("Attendance HTML was returned but no subjects could be parsed.");
     }
 
-    console.error(
-      `[Chalkpad PARSE DIAG] FINAL: ${JSON.stringify(
-        payloads.map(p => ({ n: p.subjectName, d: p.delivered, a: p.attended, dl: p.dl, pct: p.percentage }))
-      )}`
-    );
 
     return { payloads, dataAsOf };
   }

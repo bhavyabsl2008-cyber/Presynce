@@ -11,6 +11,15 @@ export function MlLetterGenerator() {
   const [parentMobile, setParentMobile] = useState("");
 
   const handleGenerate = () => {
+    const escapeHtml = (unsafe: string) => {
+      return unsafe
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    };
+
     const formatDate = (val: string) => {
       if (!val) return "________________";
       const d = new Date(val + "T00:00:00");
@@ -22,7 +31,7 @@ export function MlLetterGenerator() {
     const win = window.open("", "_blank");
     if (!win) return;
 
-    const htmlContent = '<!DOCTYPE html><html><head><title>Medical Leave Application - ' + (name || "Student") + '</title>' +
+    const htmlContent = '<!DOCTYPE html><html><head><title>Medical Leave Application - ' + escapeHtml(name || "Student") + '</title>' +
     '<style>' +
     'body { font-family: "Times New Roman", serif; max-width: 700px; margin: 40px auto; line-height: 1.8; font-size: 14px; color: #000; }' +
     '.bold { font-weight: bold; }' +
@@ -39,16 +48,16 @@ export function MlLetterGenerator() {
     '<p>Date: ' + today + '</p>' +
     '<p class="bold">Subject: Request for Medical Leave</p>' +
     '<p>Dear Sir/Madam,</p>' +
-    '<p>This is to request you to kindly grant my ward <span class="bold">' + (name || "________________") + '</span>,' +
-    'University Roll No. <span class="bold">' + (roll || "________________") + '</span>, Sem <span class="bold">' + (sem || "________________") + '</span>,' +
+    '<p>This is to request you to kindly grant my ward <span class="bold">' + escapeHtml(name || "________________") + '</span>,' +
+    'University Roll No. <span class="bold">' + escapeHtml(roll || "________________") + '</span>, Sem <span class="bold">' + escapeHtml(sem || "________________") + '</span>,' +
     'Medical Leave from <span class="bold">' + formatDate(fromDate) + '</span> to <span class="bold">' + formatDate(toDate) + '</span>.' +
-    'He/She is suffering from <span class="bold">' + (disease || "________________") + '</span>.</p>' +
+    'He/She is suffering from <span class="bold">' + escapeHtml(disease || "________________") + '</span>.</p>' +
     '<p>I hope you will consider my request. The medical certificate is attached herewith.</p>' +
     '<div class="signature-block">' +
     '<p class="bold">Yours truly,</p>' +
     '<p class="bold">(Signature of Parent/Guardian)</p>' +
-    '<p class="bold">' + (parentName || "________________") + '</p>' +
-    '<p class="bold">Mobile No.: ' + (parentMobile || "________________") + '</p>' +
+    '<p class="bold">' + escapeHtml(parentName || "________________") + '</p>' +
+    '<p class="bold">Mobile No.: ' + escapeHtml(parentMobile || "________________") + '</p>' +
     '</div>' +
     '<div class="office-use">' +
     '<p class="bold" style="text-decoration: underline;">For Office Use</p>' +
@@ -101,6 +110,3 @@ export function MlLetterGenerator() {
     </section>
   );
 }
-
-
-

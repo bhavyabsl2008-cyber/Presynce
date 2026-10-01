@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { motion, LayoutGroup } from "motion/react";
@@ -62,11 +62,13 @@ export function YouEnv() {
     }
   };
 
-  const handleDisconnect = () => {
-    clearChalkpadCreds();
-    setUsername("");
-    setPassword("");
-    setShowForm(true);
+    const handleDisconnect = () => {
+    if (window.confirm("Disconnecting will erase your local profile and require you to set up Presynce again. Continue?")) {
+      useStore.getState().clearAll();
+      localStorage.removeItem("presynce-storage");
+      clearChalkpadCreds();
+      router.replace("/onboarding");
+    }
   };
 
   const syncStatus = syncMeta.status;
@@ -76,9 +78,9 @@ export function YouEnv() {
     <PageShell>
       <LayoutGroup>
         
-        {/* ══════════════════════════════════════════════════════════════════
-            §1  HERO — You (Profile)
-        ══════════════════════════════════════════════════════════════════ */}
+        {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+            Â§1  HERO â€” You (Profile)
+        â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
         <motion.section
           variants={sectionVariants}
           initial="hidden"
@@ -101,9 +103,9 @@ export function YouEnv() {
           </div>
         </motion.section>
 
-        {/* ══════════════════════════════════════════════════════════════════
-            §2  GLOBAL CONFIGURATION
-        ══════════════════════════════════════════════════════════════════ */}
+        {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+            Â§2  GLOBAL CONFIGURATION
+        â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
         <motion.section
           variants={sectionVariants}
           initial="hidden"
@@ -139,9 +141,9 @@ export function YouEnv() {
            </div>
          </motion.section>
 
-        {/* ══════════════════════════════════════════════════════════════════
-            §3  CHALKPAD SYNC
-        ══════════════════════════════════════════════════════════════════ */}
+        {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+            Â§3  CHALKPAD SYNC
+        â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
         <motion.section
           variants={sectionVariants}
           initial="hidden"
@@ -157,7 +159,7 @@ export function YouEnv() {
               updates your attendance if anything changed. No manual action required.
             </p>
 
-            {/* ── Status panel (shown when connected) ── */}
+            {/* â”€â”€ Status panel (shown when connected) â”€â”€ */}
             {isConnected && !showForm && (
               <div className="flex flex-col gap-5">
                 {/* Last synced */}
@@ -177,7 +179,7 @@ export function YouEnv() {
                   </span>
                   {syncStatus === "needs-reconnect" ? (
                     <span className="text-body-strong font-bold text-danger flex items-center gap-2">
-                      Session expired — reconnect required
+                      Session expired â€” reconnect required
                     </span>
                   ) : syncStatus === "error" ? (
                     <span className="text-body-strong font-bold text-danger flex items-center gap-2">
@@ -185,7 +187,7 @@ export function YouEnv() {
                     </span>
                   ) : syncStatus === "syncing" || isSyncing ? (
                     <span className="text-body-strong font-bold text-ink-secondary flex items-center gap-2">
-                      Syncing…
+                      Syncingâ€¦
                     </span>
                   ) : syncStatus === "synced" ? (
                     <span className="text-body-strong font-bold text-safe flex items-center gap-2">
@@ -219,7 +221,7 @@ export function YouEnv() {
                     disabled={isSyncing}
                     className="px-6 py-3 bg-ink-v2 text-paper text-micro font-bold tracking-[0.14em] uppercase hover:bg-ink-secondary transition-colors disabled:opacity-50"
                   >
-                    {isSyncing ? "SYNCING…" : "SYNC NOW"}
+                    {isSyncing ? "SYNCINGâ€¦" : "SYNC NOW"}
                   </button>
 
                   <button
@@ -243,7 +245,7 @@ export function YouEnv() {
               </div>
             )}
 
-            {/* ── Login form (shown when not connected or changing account) ── */}
+            {/* â”€â”€ Login form (shown when not connected or changing account) â”€â”€ */}
             {(!isConnected || showForm) && (
               <form onSubmit={handleSync} className="flex flex-col gap-4">
                 <input
@@ -279,7 +281,7 @@ export function YouEnv() {
                     disabled={isSyncing || !username || !password}
                     className="px-6 py-3 bg-ink-v2 text-paper text-micro font-bold tracking-[0.14em] uppercase hover:bg-ink-secondary transition-colors disabled:opacity-50"
                   >
-                    {isSyncing ? "CONNECTING…" : "CONNECT & SYNC"}
+                    {isSyncing ? "CONNECTINGâ€¦" : "CONNECT & SYNC"}
                   </button>
 
                   {isConnected && (
@@ -301,9 +303,9 @@ export function YouEnv() {
           </div>
         </motion.section>
 
-        {/* ══════════════════════════════════════════════════════════════════
-            §4  DANGER ZONE
-        ══════════════════════════════════════════════════════════════════ */}
+        {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+            Â§4  DANGER ZONE
+        â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
         <motion.section
           variants={sectionVariants}
           initial="hidden"
@@ -335,3 +337,4 @@ export function YouEnv() {
     </PageShell>
   );
 }
+
