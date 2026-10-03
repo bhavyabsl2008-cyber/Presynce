@@ -4,6 +4,8 @@ import { Student, Subject, TimetableSlot, AttendanceRecord, LeaveRequest, Attend
 import { SyncMeta } from '@/services/sync/types';
 
 interface PresynceState {
+  sessionToken: string | null;
+  setSessionToken: (token: string | null) => void;
   student: Student | null;
   subjects: Subject[];
   slots: TimetableSlot[];
@@ -45,6 +47,8 @@ interface PresynceState {
 export const useStore = create<PresynceState>()(
   persist(
     (set) => ({
+      sessionToken: null,
+      setSessionToken: (token) => set({ sessionToken: token }),
       student: null,
       subjects: [],
       slots: [],
@@ -129,7 +133,9 @@ export const useStore = create<PresynceState>()(
       
       resetStore: () => {
         set({
-          student: null,
+          sessionToken: null,
+      setSessionToken: (token) => set({ sessionToken: token }),
+      student: null,
           subjects: [],
           slots: [],
           records: [],
@@ -145,7 +151,7 @@ export const useStore = create<PresynceState>()(
       
       setSyncMeta: (meta) => set((state) => ({ syncMeta: { ...state.syncMeta, ...meta } })),
       
-      clearAll: () => set({ student: null, subjects: [], slots: [], records: [], leaves: [], syncMeta: { lastSyncedAt: null, source: null, dataAsOf: null, status: "idle", error: null, updatedSubjectIds: [] } })
+      clearAll: () => set({ sessionToken: null, student: null, subjects: [], slots: [], records: [], leaves: [], syncMeta: { lastSyncedAt: null, source: null, dataAsOf: null, status: "idle", error: null, updatedSubjectIds: [] } })
     }),
     {
       name: 'presynce-storage', // name of the item in the storage (must be unique)
@@ -153,6 +159,7 @@ export const useStore = create<PresynceState>()(
     }
   )
 );
+
 
 
 

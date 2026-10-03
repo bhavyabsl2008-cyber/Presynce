@@ -6,188 +6,133 @@ import { PageShell } from "@/components/layout/v2/page-shell";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { useStore } from "@/store";
 import { useRouter } from "next/navigation";
-import { useChalkpadMobileSync } from "@/hooks/useChalkpadMobileSync";
-import { saveChalkpadCreds, getChalkpadCreds, clearChalkpadCreds } from "@/hooks/useStartupSync";
-
-const EASE = [0.22, 1, 0.36, 1] as const;
-
-function formatSyncTime(iso: string | null | undefined): string {
-  if (!iso) return "Never";
-  try {
-    const d = new Date(iso);
-    const now = new Date();
-    const diffMs = now.getTime() - d.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    if (diffMins < 1) return "Just now";
-    if (diffMins < 60) return `${diffMins}m ago`;
-    const diffHrs = Math.floor(diffMins / 60);
-    if (diffHrs < 24) return `${diffHrs}h ago`;
-    return d.toLocaleDateString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
-  } catch {
-    return "Unknown";
-  }
-}
+import { useChalkpadSyncStateMachine } from "@/hooks/useChalkpadSyncStateMachine";
 
 export function YouEnv() {
   const router = useRouter();
-  const shouldReduce = useReducedMotion();
-  const { student, updateGlobalTarget, syncMeta } = useStore();
-  const globalThreshold = student?.globalTarget ?? 75;
-
-  const savedCreds = typeof window !== "undefined" ? getChalkpadCreds() : null;
-  const isConnected = !!savedCreds;
-
-  const [username, setUsername] = useState(savedCreds?.username ?? "");
+  const shouldReduceMotion = useReducedMotion();
+  const { student, syncMeta, sessionToken } = useStore();
+  const [showForm, setShowForm] = useState(false);
+  
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [showForm, setShowForm] = useState(!isConnected);
-  const { sync, isSyncing, error } = useChalkpadMobileSync();
+  const [otpVal, setOtpVal] = useState("");
 
-  const sectionVariants = {
-    hidden: { opacity: 0, y: shouldReduce ? 0 : 10 },
-    visible: (i: number) => ({
-      opacity: 1, y: 0,
-      transition: shouldReduce ? { duration: 0.01 } : { delay: i * 0.055, duration: 0.32, ease: EASE },
-    }),
-  };
+  const {
+    phase,
+    error,
+    requiresReauth,
+    submitCredentials,
+    submitOtp,
+    submitSessionToken,
+    reset,
+    setPhase
+  } = useChalkpadSyncStateMachine();
 
-  const handleSync = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!username || !password) return;
-    const result = await sync(username, password);
-    if ((result as { success?: boolean })?.success !== false) {
-      // Always save credentials so auto-sync works on next launch
-      saveChalkpadCreds({ username, password });
-      setPassword("");
-      setShowForm(false);
-    }
-  };
-
-    const handleDisconnect = () => {
-    if (window.confirm("Disconnecting will erase your local profile and require you to set up Presynce again. Continue?")) {
-      useStore.getState().clearAll();
-      localStorage.removeItem("presynce-storage");
-      clearChalkpadCreds();
-      router.replace("/onboarding");
-    }
-  };
-
+  // "needs-reconnect" is historically set by useStartupSync
+  const isSessionDead = syncMeta.status === "needs-reconnect" || requiresReauth;
+  const isConnected = !!sessionToken && !isSessionDead;
   const syncStatus = syncMeta.status;
   const lastSynced = syncMeta.lastSyncedAt;
+
+  const handleDisconnect = () => {
+    if (window.confirm("Are you sure you want to disconnect? This will require you to log in again.")) {
+      useStore.getState().setSessionToken(null);
+      reset();
+    }
+  };
+
+  const handleSyncSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!username || !password) return;
+    await submitCredentials(username, password);
+  };
+
+  const handleOtpSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!otpVal || otpVal.length < 4) return;
+    await submitOtp(otpVal);
+    // Upon success, the phase will go to "success". We can just rely on isConnected rendering.
+    if (phase === "success" || !error) {
+      setShowForm(false);
+      setOtpVal("");
+    }
+  };
+
+  const sectionVariants = {
+    hidden: { opacity: 0, y: shouldReduceMotion ? 0 : 8 },
+    visible: (custom: number) => ({
+      opacity: 1,
+      y: 0,
+      transition: {
+        delay: shouldReduceMotion ? 0 : custom * 0.05,
+        ease: [0.22, 1, 0.36, 1] as const,
+        duration: 0.4,
+      },
+    }),
+  };
 
   return (
     <PageShell>
       <LayoutGroup>
-        
-        {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-            Â§1  HERO â€” You (Profile)
-        â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
+        {/* --- STUDENT IDENTITY --- */}
         <motion.section
           variants={sectionVariants}
           initial="hidden"
           animate="visible"
           custom={0}
-          className="px-5 md:px-8 lg:px-12 pt-10 pb-8 border-b border-line flex flex-col md:flex-row justify-between gap-8"
+          className="px-5 md:px-8 lg:px-12 py-10 pb-6 border-b border-line"
         >
-          <div className="flex-1 max-w-2xl">
-            <h1
-              className="font-bold tracking-tighter text-ink-v2 leading-[0.85] mb-4"
-              style={{ fontSize: "clamp(3rem, 6vw, 4.5rem)", fontFamily: "var(--font-display)" }}
-            >
-              STUDENT PROFILE
+          <div className="flex flex-col gap-2">
+            <span className="text-micro font-bold tracking-[0.14em] uppercase text-ink-tertiary">
+              IDENTITY
+            </span>
+            <h1 className="text-display-strong font-bold text-ink-v2 tracking-tight leading-none mb-1">
+              {student?.name || "Student"}
             </h1>
-            <div className="flex gap-6 text-meta font-bold tracking-[0.1em] uppercase text-ink-secondary" style={{ fontFamily: "var(--font-data)" }}>
-              <span>SPRING 2026</span>
-              <span aria-hidden>-</span>
-              <span>COMPUTER SCIENCE</span>
-            </div>
+            <p className="text-body-strong font-bold text-ink-secondary" style={{ fontFamily: "var(--font-data)" }}>
+              {student?.branch || "N/A"} â€¢ Semester {student?.semester}
+            </p>
           </div>
         </motion.section>
 
-        {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-            Â§2  GLOBAL CONFIGURATION
-        â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
+        {/* --- CHALKPAD SYNC --- */}
         <motion.section
           variants={sectionVariants}
           initial="hidden"
           animate="visible"
           custom={1}
-          className="px-5 md:px-8 lg:px-12 py-10 border-b border-line"
+          className="px-5 md:px-8 lg:px-12 py-10 pb-10 border-b border-line"
         >
-           <span className="text-micro font-bold tracking-[0.18em] uppercase text-ink-tertiary mb-6 block">SYSTEM CONFIGURATION</span>
-           
-           <div className="flex flex-col gap-8 max-w-xl">
-             <div className="flex flex-col gap-4">
-               <label htmlFor="threshold" className="text-body-strong font-bold text-ink-v2">
-                 Global Target Threshold
-               </label>
-               <p className="text-body-v2 text-ink-secondary leading-relaxed">
-                 Presynce uses this value to determine the safety margins across your entire schedule. Modifying this will recalculate all consequence logic.
-               </p>
-               
-               <div className="flex items-center gap-4 mt-2">
-                 <input 
-                   type="range" 
-                   id="threshold"
-                   min="0" max="100" 
-                   value={globalThreshold} 
-                   onChange={(e) => updateGlobalTarget(Number(e.target.value))}
-                   className="flex-1 accent-ink-v2 h-1 bg-line rounded-none appearance-none"
-                 />
-                 <span className="text-[2rem] font-bold tabular-nums text-ink-v2 min-w-[4rem] text-right" style={{ fontFamily: "var(--font-data)" }}>
-                   {globalThreshold}%
-                 </span>
-               </div>
-             </div>
-           </div>
-         </motion.section>
+          <div className="flex flex-col gap-6 max-w-2xl">
+            <div className="flex flex-col gap-2">
+              <span className="text-micro font-bold tracking-[0.14em] uppercase text-ink-tertiary">
+                INTEGRATION
+              </span>
+              <h2 className="text-title-strong font-bold text-ink-v2">
+                Chalkpad Sync
+              </h2>
+            </div>
 
-        {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-            Â§3  CHALKPAD SYNC
-        â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
-        <motion.section
-          variants={sectionVariants}
-          initial="hidden"
-          animate="visible"
-          custom={2}
-          className="px-5 md:px-8 lg:px-12 py-10 border-b border-line"
-        >
-          <span className="text-micro font-bold tracking-[0.18em] uppercase text-ink-tertiary mb-6 block">CHALKPAD SYNC</span>
-
-          <div className="flex flex-col gap-8 max-w-xl">
-            <p className="text-body-v2 text-ink-secondary leading-relaxed">
-              Presynce automatically checks Chalkpad when you open the app and
-              updates your attendance if anything changed. No manual action required.
-            </p>
-
-            {/* â”€â”€ Status panel (shown when connected) â”€â”€ */}
-            {isConnected && !showForm && (
-              <div className="flex flex-col gap-5">
-                {/* Last synced */}
+            {/* Connected view (only shown if we aren't displaying the reconnect/change form) */}
+            {isConnected && !showForm && phase === "idle" && (
+              <div className="flex flex-col gap-6 border border-line p-6 bg-surface-v2">
                 <div className="flex flex-col gap-1">
                   <span className="text-micro font-bold tracking-[0.14em] uppercase text-ink-tertiary">
-                    LAST SYNCED
+                    LAST SYNC
                   </span>
                   <span className="text-body-strong font-bold text-ink-v2" style={{ fontFamily: "var(--font-data)" }}>
-                    {formatSyncTime(lastSynced)}
+                    {lastSynced ? new Date(lastSynced).toLocaleString() : "Never"}
                   </span>
                 </div>
 
-                {/* Status indicator */}
                 <div className="flex flex-col gap-1">
                   <span className="text-micro font-bold tracking-[0.14em] uppercase text-ink-tertiary">
                     STATUS
                   </span>
-                  {syncStatus === "needs-reconnect" ? (
-                    <span className="text-body-strong font-bold text-danger flex items-center gap-2">
-                      Session expired â€” reconnect required
-                    </span>
-                  ) : syncStatus === "error" ? (
+                  {syncStatus === "error" ? (
                     <span className="text-body-strong font-bold text-danger flex items-center gap-2">
                       {syncMeta.error ?? "Sync error"}
-                    </span>
-                  ) : syncStatus === "syncing" || isSyncing ? (
-                    <span className="text-body-strong font-bold text-ink-secondary flex items-center gap-2">
-                      Syncingâ€¦
                     </span>
                   ) : syncStatus === "synced" ? (
                     <span className="text-body-strong font-bold text-safe flex items-center gap-2">
@@ -195,33 +140,17 @@ export function YouEnv() {
                     </span>
                   ) : (
                     <span className="text-body-strong font-bold text-ink-secondary flex items-center gap-2">
-                      {lastSynced ? "Up to date" : "Not yet synced this session"}
+                      Ready to sync
                     </span>
                   )}
                 </div>
 
-                {/* Account */}
-                <div className="flex flex-col gap-1">
-                  <span className="text-micro font-bold tracking-[0.14em] uppercase text-ink-tertiary">
-                    ACCOUNT
-                  </span>
-                  <span className="text-body-strong font-bold text-ink-v2" style={{ fontFamily: "var(--font-data)" }}>
-                    {savedCreds?.username}
-                  </span>
-                </div>
-
-                {/* Actions row */}
                 <div className="flex items-center gap-4 flex-wrap">
                   <button
-                    onClick={async () => {
-                      const creds = getChalkpadCreds();
-                      if (!creds) { setShowForm(true); return; }
-                      await sync(creds.username, creds.password);
-                    }}
-                    disabled={isSyncing}
-                    className="px-6 py-3 bg-ink-v2 text-paper text-micro font-bold tracking-[0.14em] uppercase hover:bg-ink-secondary transition-colors disabled:opacity-50"
+                    onClick={() => submitSessionToken()}
+                    className="px-6 py-3 bg-ink-v2 text-paper text-micro font-bold tracking-[0.14em] uppercase hover:bg-ink-secondary transition-colors"
                   >
-                    {isSyncing ? "SYNCINGâ€¦" : "SYNC NOW"}
+                    SYNC NOW
                   </button>
 
                   <button
@@ -238,23 +167,93 @@ export function YouEnv() {
                     DISCONNECT
                   </button>
                 </div>
-
-                {error && (
-                  <div className="text-meta text-danger">{error}</div>
-                )}
               </div>
             )}
 
-            {/* â”€â”€ Login form (shown when not connected or changing account) â”€â”€ */}
-            {(!isConnected || showForm) && (
-              <form onSubmit={handleSync} className="flex flex-col gap-4">
+            {/* Syncing or OTP active view */}
+            {phase === "syncing" && (
+              <div className="flex flex-col gap-6 border border-line p-6 bg-surface-v2 justify-center items-center">
+                <div className="w-6 h-6 rounded-full border-2 border-ink-v2 border-t-transparent animate-spin" />
+                <span className="text-micro font-bold tracking-[0.18em] uppercase text-ink-tertiary">SYNCING...</span>
+              </div>
+            )}
+
+            {phase === "authenticating" && (
+              <div className="flex flex-col gap-6 border border-line p-6 bg-surface-v2 justify-center items-center">
+                <div className="w-6 h-6 rounded-full border-2 border-ink-v2 border-t-transparent animate-spin" />
+                <span className="text-micro font-bold tracking-[0.18em] uppercase text-ink-tertiary">CONNECTING...</span>
+              </div>
+            )}
+
+            {phase === "verifying" && (
+              <div className="flex flex-col gap-6 border border-line p-6 bg-surface-v2 justify-center items-center">
+                <div className="w-6 h-6 rounded-full border-2 border-ink-v2 border-t-transparent animate-spin" />
+                <span className="text-micro font-bold tracking-[0.18em] uppercase text-ink-tertiary">VERIFYING OTP...</span>
+              </div>
+            )}
+
+            {phase === "success" && (
+              <div className="flex flex-col gap-6 border border-line p-6 bg-surface-v2 justify-center items-center">
+                <span className="text-micro font-bold tracking-[0.18em] uppercase text-safe">SYNC COMPLETED</span>
+                <button
+                    onClick={() => { reset(); setShowForm(false); }}
+                    className="px-6 py-3 bg-ink-v2 text-paper text-micro font-bold tracking-[0.14em] uppercase hover:bg-ink-secondary transition-colors"
+                  >
+                    DONE
+                </button>
+              </div>
+            )}
+
+            {phase === "otp" && (
+              <form onSubmit={handleOtpSubmit} className="flex flex-col gap-4 border border-line p-6 bg-surface-v2">
+                <p className="text-body-v2 font-bold">Verification Required</p>
+                <p className="text-meta text-ink-tertiary">We&apos;ve sent a verification code to your registered contact.</p>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  maxLength={4}
+                  placeholder="4-digit OTP"
+                  value={otpVal}
+                  onChange={(e) => setOtpVal(e.target.value.replace(/\D/g, ""))}
+                  className="w-full bg-transparent border border-line px-4 py-3 text-body-strong focus:outline-none focus:border-ink-secondary tracking-widest text-center text-xl"
+                  autoComplete="one-time-code"
+                  required
+                />
+                {error && <div className="text-meta text-danger">{error}</div>}
+                <div className="flex items-center gap-4 mt-2">
+                  <button
+                    type="submit"
+                    disabled={otpVal.length < 4}
+                    className="px-6 py-3 bg-ink-v2 text-paper text-micro font-bold tracking-[0.14em] uppercase hover:bg-ink-secondary transition-colors disabled:opacity-50"
+                  >
+                    VERIFY
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPhase("idle")}
+                    className="px-4 py-3 text-micro font-bold tracking-[0.14em] uppercase text-ink-tertiary hover:text-ink-secondary transition-colors"
+                  >
+                    CANCEL
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* Login form (shown when not connected, session expired, or changing account) */}
+            {(phase === "idle" || phase === "error") && (!isConnected || showForm) && (
+              <form onSubmit={handleSyncSubmit} className="flex flex-col gap-4">
+                {isSessionDead && !showForm && (
+                  <div className="px-4 py-3 border border-danger bg-danger/10 text-danger font-bold text-meta">
+                    Your session has expired. Please connect again.
+                  </div>
+                )}
                 <input
                   type="text"
                   placeholder="Chalkpad Username"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   className="w-full bg-transparent border border-line px-4 py-3 text-body-strong focus:outline-none focus:border-ink-secondary"
-                  disabled={isSyncing}
                   autoComplete="username"
                   required
                 />
@@ -264,30 +263,28 @@ export function YouEnv() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full bg-transparent border border-line px-4 py-3 text-body-strong focus:outline-none focus:border-ink-secondary"
-                  disabled={isSyncing}
                   autoComplete="current-password"
                   required
                 />
 
                 <p className="text-meta text-ink-tertiary leading-relaxed">
-                  Presynce securely stores your credentials so it can auto-sync
-                  attendance when you open the app. Your credentials are never sent
-                  anywhere except the official Chalkpad mobile API.
+                  Presynce authenticates with Chalkpad to auto-sync your attendance.
+                  Your password is never stored on disk.
                 </p>
 
                 <div className="flex items-center gap-4 flex-wrap">
                   <button
                     type="submit"
-                    disabled={isSyncing || !username || !password}
+                    disabled={!username || !password}
                     className="px-6 py-3 bg-ink-v2 text-paper text-micro font-bold tracking-[0.14em] uppercase hover:bg-ink-secondary transition-colors disabled:opacity-50"
                   >
-                    {isSyncing ? "CONNECTINGâ€¦" : "CONNECT & SYNC"}
+                    CONNECT & SYNC
                   </button>
 
                   {isConnected && (
                     <button
                       type="button"
-                      onClick={() => setShowForm(false)}
+                      onClick={() => { setShowForm(false); reset(); }}
                       className="px-4 py-3 text-micro font-bold tracking-[0.14em] uppercase text-ink-tertiary hover:text-ink-secondary transition-colors"
                     >
                       CANCEL
@@ -295,17 +292,13 @@ export function YouEnv() {
                   )}
                 </div>
 
-                {error && (
-                  <div className="text-meta text-danger">{error}</div>
-                )}
+                {error && <div className="text-meta text-danger">{error}</div>}
               </form>
             )}
           </div>
         </motion.section>
 
-        {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-            Â§4  DANGER ZONE
-        â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
+        {/* --- DANGER ZONE --- */}
         <motion.section
           variants={sectionVariants}
           initial="hidden"
@@ -322,7 +315,6 @@ export function YouEnv() {
                    if (window.confirm("Are you sure you want to completely erase your data and restart setup?")) {
                      useStore.getState().clearAll();
                      localStorage.removeItem("presynce-storage");
-                     clearChalkpadCreds();
                      router.replace("/onboarding");
                    }
                  }}
@@ -337,4 +329,7 @@ export function YouEnv() {
     </PageShell>
   );
 }
+
+
+
 

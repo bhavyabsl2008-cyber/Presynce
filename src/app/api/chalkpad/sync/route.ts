@@ -1,23 +1,35 @@
-import { NextRequest, NextResponse } from "next/server";
-import { ChalkpadMobileService, OtpPendingState } from "@/services/sync/chalkpad-mobile";
+﻿import { NextRequest, NextResponse } from "next/server";
+import { ChalkpadMobileService, OtpPendingState, AuthenticatedSession } from "@/services/sync/chalkpad-mobile";
 import crypto from "crypto";
 
-// Use a stable key for encrypting the pending state to keep it opaque to the client.
-// We default to a fallback secret so it works out-of-the-box without ENV changes.
-const ENCRYPTION_KEY = crypto.scryptSync(process.env.NEXTAUTH_SECRET || "chalkpad_default_secret_39233", "salt", 32);
 
-function encryptState(state: OtpPendingState): string {
+
+function getEncryptionKey(): Buffer {
+  const secret = process.env.NEXTAUTH_SECRET;
+  if (process.env.NODE_ENV === "production" && !secret) {
+    throw new Error("NEXTAUTH_SECRET is required");
+  }
+  return crypto.scryptSync(secret || "dev_only_secret", "salt", 32);
+}
+const SESSION_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+interface SessionTokenPayload {
+  session: AuthenticatedSession;
+  expiresAt: number;
+}
+
+function encryptState<T>(state: T): string {
   const iv = crypto.randomBytes(16);
-  const cipher = crypto.createCipheriv("aes-256-gcm", ENCRYPTION_KEY, iv);
+  const cipher = crypto.createCipheriv("aes-256-gcm", getEncryptionKey(), iv);
   let encrypted = cipher.update(JSON.stringify(state), "utf8", "hex");
   encrypted += cipher.final("hex");
   const authTag = cipher.getAuthTag().toString("hex");
   return `${iv.toString("hex")}:${authTag}:${encrypted}`;
 }
 
-function decryptState(token: string): OtpPendingState {
+function decryptState<T>(token: string): T {
   const [ivHex, authTagHex, encrypted] = token.split(":");
-  const decipher = crypto.createDecipheriv("aes-256-gcm", ENCRYPTION_KEY, Buffer.from(ivHex, "hex"));
+  const decipher = crypto.createDecipheriv("aes-256-gcm", getEncryptionKey(), Buffer.from(ivHex, "hex"));
   decipher.setAuthTag(Buffer.from(authTagHex, "hex"));
   let decrypted = decipher.update(encrypted, "hex", "utf8");
   decrypted += decipher.final("utf8");
@@ -25,37 +37,62 @@ function decryptState(token: string): OtpPendingState {
 }
 
 export async function POST(req: NextRequest) {
+  if (process.env.NODE_ENV === "production" && !process.env.NEXTAUTH_SECRET) {
+    return NextResponse.json(
+      { error: "NEXTAUTH_SECRET is required" },
+      { status: 500 }
+    );
+  }
+  let isSessionBased = false;
+
   try {
     const body = await req.json();
-    const { username, password, otp, pendingToken, useLegacyFlow } = body;
+    const { username, password, otp, pendingToken, sessionToken } = body;
 
-    // ── OTP STAGE 2: Verify OTP and fetch attendance ─────────────────────────
+    // --- C. Session-based sync ---
+    if (sessionToken) {
+      isSessionBased = true;
+      if (typeof sessionToken !== "string" || sessionToken.trim() === "") {
+        return NextResponse.json({ error: "Session token is required" }, { status: 400 });
+      }
+      
+      let payload: SessionTokenPayload;
+      try {
+        payload = decryptState<SessionTokenPayload>(sessionToken);
+      } catch (err) {
+        return NextResponse.json({ requiresReauth: true }, { status: 401 });
+      }
+
+      if (Date.now() > payload.expiresAt) {
+        return NextResponse.json({ requiresReauth: true }, { status: 401 });
+      }
+      
+      const result = await ChalkpadMobileService.fetchAttendanceAuthenticated(payload.session);
+      return NextResponse.json(result);
+    }
+
+    // --- B. OTP verification ---
     if (otp && pendingToken) {
       if (typeof otp !== "string" || otp.trim() === "") {
         return NextResponse.json({ error: "OTP is required" }, { status: 400 });
       }
       
-      const pendingState = decryptState(pendingToken);
+      const pendingState = decryptState<OtpPendingState>(pendingToken);
       const session = await ChalkpadMobileService.verifyOtp(pendingState, otp.trim());
       const result = await ChalkpadMobileService.fetchAttendanceAuthenticated(session);
       
-      return NextResponse.json(result);
+      const newSessionToken = encryptState<SessionTokenPayload>({
+        session,
+        expiresAt: Date.now() + SESSION_TTL_MS
+      });
+      
+      return NextResponse.json({
+        ...result,
+        sessionToken: newSessionToken
+      });
     }
 
-    // ── LEGACY FLOW FALLBACK ──────────────────────────────────────────────────
-    if (useLegacyFlow) {
-      if (!username || typeof username !== "string" || username.trim() === "") {
-        return NextResponse.json({ error: "Username is required" }, { status: 400 });
-      }
-      if (!password || typeof password !== "string" || password.trim() === "") {
-        return NextResponse.json({ error: "Password is required" }, { status: 400 });
-      }
-
-      const result = await ChalkpadMobileService.fetchAttendance(username.trim(), password);
-      return NextResponse.json(result);
-    }
-
-    // ── OTP STAGE 1: Initiate Login ───────────────────────────────────────────
+    // --- A. Initial authentication ---
     if (username && password) {
       if (typeof username !== "string" || username.trim() === "") {
         return NextResponse.json({ error: "Username is required" }, { status: 400 });
@@ -65,34 +102,47 @@ export async function POST(req: NextRequest) {
       }
 
       const pendingState = await ChalkpadMobileService.initiateLogin(username.trim(), password);
-      const token = encryptState(pendingState);
+      const token = encryptState<OtpPendingState>(pendingState);
       
       return NextResponse.json({
         requiresOtp: true,
         pendingToken: token,
-        name: pendingState.name
       });
     }
 
-    return NextResponse.json({ error: "Invalid request payload. Expected username/password or otp/pendingToken." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request payload. Expected sessionToken, username/password, or otp/pendingToken." }, { status: 400 });
 
   } catch (error: unknown) {
-    console.error("[Chalkpad Sync API] Error:", error);
-    
-    // Provide generic safe error messages without exposing credentials or internal tokens
-    let safeMessage = "An error occurred during Chalkpad sync.";
     if (error instanceof Error) {
+      // If we used a session token and the Chalkpad upstream fetch failed with auth errors (401/403/parse redirect),
+      // we tell the client the session is dead.
+      if (isSessionBased && (error.message.includes("login failed") || error.message.includes("status: 401") || error.message.includes("status: 403"))) {
+        return NextResponse.json({ requiresReauth: true }, { status: 401 });
+      }
+
+      let safeMessage = "An error occurred during Chalkpad sync.";
       if (error.message.includes("login failed") || error.message.includes("status: 401")) {
         safeMessage = "Invalid credentials or Chalkpad login failed.";
       } else if (error.message.includes("OTP verification failed")) {
         safeMessage = "Invalid or expired OTP.";
       } else if (error.message.includes("no attendance content") || error.message.includes("parsed")) {
+        if (isSessionBased) {
+          // If a session-based sync gets a weird parse error (usually due to a redirect back to login HTML), treat as expired
+          return NextResponse.json({ requiresReauth: true }, { status: 401 });
+        }
         safeMessage = "Could not parse attendance data from Chalkpad.";
       } else {
         safeMessage = "An unexpected error occurred while communicating with Chalkpad.";
       }
+      return NextResponse.json({ error: safeMessage }, { status: 500 });
     }
 
-    return NextResponse.json({ error: safeMessage }, { status: 500 });
+    return NextResponse.json({ error: "An unexpected error occurred." }, { status: 500 });
   }
 }
+
+
+
+
+
+

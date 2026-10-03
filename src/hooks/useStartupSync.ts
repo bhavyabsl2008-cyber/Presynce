@@ -6,16 +6,7 @@
  * Fires once per browser session on app launch, and again whenever
  * the app regains focus after 30+ minutes in the background.
  *
- * This is always-on — auto-sync is not a user preference.
- * Credentials stored in localStorage under "presynce:chalkpad_creds"
- * are written there by the You page after every successful manual sync.
- *
- * Flow:
- *   1. Read credentials from localStorage.
- *   2. POST /api/chalkpad/sync (legacy flow — username+password).
- *   3. On success &rarr; SyncEngine.ingest() &rarr; update store.
- *   4. On 401/403 &rarr; set status "needs-reconnect" (reconnect banner on You page).
- *   5. No credentials &rarr; do nothing silently (user hasn't connected yet).
+ * Uses the persisted sessionToken to sync attendance seamlessly.
  */
 
 import { useEffect, useRef } from "react";
@@ -23,24 +14,8 @@ import { useStore } from "@/store";
 import { SyncEngine } from "@/services/sync/engine";
 import { ChalkpadBridgePayload } from "@/services/sync/types";
 
-const CREDS_KEY = "presynce:chalkpad_creds";
 const SESSION_FLAG = "presynce:startup_sync_done";
 const IDLE_THRESHOLD_MS = 30 * 60 * 1000; // 30 minutes
-
-export interface ChalkpadCreds { username: string; password: string; }
-
-export function saveChalkpadCreds(c: ChalkpadCreds) {
-  try { localStorage.setItem(CREDS_KEY, JSON.stringify(c)); } catch { /* noop */ }
-}
-export function clearChalkpadCreds() {
-  try { localStorage.removeItem(CREDS_KEY); } catch { /* noop */ }
-}
-export function getChalkpadCreds(): ChalkpadCreds | null {
-  try {
-    const raw = localStorage.getItem(CREDS_KEY);
-    return raw ? (JSON.parse(raw) as ChalkpadCreds) : null;
-  } catch { return null; }
-}
 
 export function useStartupSync() {
   const { subjects, mergeSubjectAttendance, setSyncMeta, addSubject } = useStore();
@@ -48,9 +23,9 @@ export function useStartupSync() {
   subjectsRef.current = subjects;
 
   const doSync = async () => {
-    // Re-read credentials at sync time (not captured at mount)
-    const creds = getChalkpadCreds();
-    if (!creds) return; // Not yet connected — silent
+    // Re-read sessionToken directly from store
+    const { sessionToken } = useStore.getState();
+    if (!sessionToken) return; // Not yet connected or missing token
 
     setSyncMeta({ status: "syncing" });
 
@@ -58,20 +33,19 @@ export function useStartupSync() {
       const res = await fetch("/api/chalkpad/sync", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          username: creds.username,
-          password: creds.password,
-          useLegacyFlow: true,
-        }),
+        body: JSON.stringify({ sessionToken }),
       });
 
       const data = await res.json();
 
       if (!res.ok) {
-        setSyncMeta({
-          status: (res.status === 401 || res.status === 403) ? "needs-reconnect" : "error",
-          error: data?.error ?? "Sync failed",
-        });
+        // If it returns 401/403 or explicit requiresReauth
+        if (res.status === 401 || res.status === 403 || data.requiresReauth) {
+          useStore.getState().setSessionToken(null);
+          setSyncMeta({ status: "needs-reconnect", error: "Session expired." });
+        } else {
+          setSyncMeta({ status: "error", error: data?.error ?? "Sync failed" });
+        }
         return;
       }
 
