@@ -116,12 +116,12 @@ export async function POST(req: NextRequest) {
     if (error instanceof Error) {
       // If we used a session token and the Chalkpad upstream fetch failed with auth errors (401/403/parse redirect),
       // we tell the client the session is dead.
-      if (isSessionBased && (error.message.includes("login failed") || error.message.includes("status: 401") || error.message.includes("status: 403"))) {
+      if (isSessionBased && (error.message.includes("login failed") || error.message.includes("HTTP 401") || error.message.includes("HTTP 403") || error.message.includes("status: 401") || error.message.includes("status: 403"))) {
         return NextResponse.json({ requiresReauth: true }, { status: 401 });
       }
 
       let safeMessage = "An error occurred during Chalkpad sync.";
-      if (error.message.includes("login failed") || error.message.includes("status: 401")) {
+      if (error.message.includes("login failed") || error.message.includes("login request failed") || error.message.includes("credential check failed") || error.message.includes("HTTP 401") || error.message.includes("status: 401") || error.message.includes("invalid JSON on login")) {
         safeMessage = "Invalid credentials or Chalkpad login failed.";
       } else if (error.message.includes("OTP verification failed")) {
         safeMessage = "Invalid or expired OTP.";
@@ -140,9 +140,3 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "An unexpected error occurred." }, { status: 500 });
   }
 }
-
-
-
-
-
-

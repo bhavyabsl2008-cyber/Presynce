@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
 import { motion, LayoutGroup } from "motion/react";
@@ -91,7 +91,7 @@ export function YouEnv() {
               {student?.name || "Student"}
             </h1>
             <p className="text-body-strong font-bold text-ink-secondary" style={{ fontFamily: "var(--font-data)" }}>
-              {student?.branch || "N/A"} â€¢ Semester {student?.semester}
+              {student?.branch || "N/A"} • {student?.semester}
             </p>
           </div>
         </motion.section>
@@ -354,4 +354,3 @@ export function YouEnv() {
     </PageShell>
   );
 }
-

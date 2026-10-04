@@ -1,18 +1,18 @@
-﻿import crypto from "crypto";
+import crypto from "crypto";
 import { ChalkpadBridgePayload } from "./types";
 
 // ============================================================================
 // CHALKPAD MOBILE API SERVICE
 // ============================================================================
 
-const CHALKPAD_BASE_URL = "https://cu.chalkpad.in/mobileApi";
+const CHALKPAD_BASE_URL = "https://cuiet.codebrigade.in/mobilev2";
 const LOGIN_URL = `${CHALKPAD_BASE_URL}/appLoginAuthV2`;
 const VERIFY_OTP_URL = `${CHALKPAD_BASE_URL}/verifyOtp`;
 const ATTENDANCE_URL = `${CHALKPAD_BASE_URL}/commonPage`;
 const MULTI_FACTOR_AUTH_URL = `${CHALKPAD_BASE_URL}/multiFactorAuth`;
 
-// 564 corresponds to the "Attendance" page in Chalkpad's mobile app layout
-const PAGE_ID = "564";
+// 28 is the Chalkpad commonPage ID for the "Attendance" page in the mobile app layout
+const PAGE_ID = "28";
 
 // Both the legitimate and legacy flow require a device ID.
 const DEVICE_ID = "88437E4C-4E1D-4104-964A-7DE41B163E06";
@@ -143,31 +143,42 @@ export class ChalkpadMobileService {
       cookieHeader,
     };
 
-    // -- 1b. Trigger the OTP dispatch ------------------------------------------
-    // This endpoint must be hit with the user's ID for Chalkpad to actually
-    // send the SMS/email. It returns HTML, which we ignore.
-    const triggerBody = new URLSearchParams({
-      authUserId: pendingState.userId,
-    });
-
-    const triggerRes = await fetch(MULTI_FACTOR_AUTH_URL, {
+    // -- 1b. Trigger multiFactorAuth (stateless - no body needed) -------------
+    // This causes the server to send the OTP to the user's registered contact.
+    const mfaRes = await fetch(MULTI_FACTOR_AUTH_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-        "Accept": "*/*",
+        "Accept": "application/json, text/javascript, */*; q=0.01",
+        "Accept-Language": "en-US,en;q=0.9",
+        "Origin": "null",
         "User-Agent": USER_AGENT,
         "Connection": "close",
         ...(cookieHeader ? { Cookie: cookieHeader } : {}),
       },
-      body: triggerBody.toString(),
+      body: "",
       cache: "no-store",
     });
 
-    if (!triggerRes.ok) {
-      throw new Error(`Failed to trigger Chalkpad OTP dispatch (HTTP ${triggerRes.status}).`);
-    }
+    // We log the MFA probe status but do not fail on it - the OTP dispatch
+    // may succeed even if the probe returns a non-2xx code in some configurations.
+    console.info(`[Chalkpad OTP] multiFactorAuth probe status: ${mfaRes.status}`);
 
-    // Success: The user should now be receiving an OTP.
+    // Merge any new cookies the MFA probe sets into the jar
+    const mfaCookies = mfaRes.headers.getSetCookie
+      ? mfaRes.headers.getSetCookie()
+      : [mfaRes.headers.get("set-cookie") ?? ""].filter(Boolean);
+    for (const c of mfaCookies) {
+      const primary = c.split(";")[0].trim();
+      const eqIdx = primary.indexOf("=");
+      if (eqIdx > 0) {
+        cookieJar.set(primary.slice(0, eqIdx).trim(), primary.slice(eqIdx + 1).trim());
+      }
+    }
+    pendingState.cookieHeader = Array.from(cookieJar.entries())
+      .map(([n, v]) => `${n}=${v}`)
+      .join("; ");
+
     return pendingState;
   }
 
@@ -220,7 +231,7 @@ export class ChalkpadMobileService {
       throw new Error(`OTP verification failed (status: ${json.status}).`);
     }
 
-    const userData = json.data?.[0];
+    const userData = json.data;
     if (!userData || !userData.token) {
       throw new Error("OTP verified successfully but Chalkpad returned no security token.");
     }
