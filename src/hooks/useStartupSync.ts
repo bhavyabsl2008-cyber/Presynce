@@ -3,8 +3,8 @@
 /**
  * useStartupSync
  *
- * Fires once per browser session on app launch, and again whenever
- * the app regains focus after 30+ minutes in the background.
+ * Fires unconditionally on component mount (app launch/reload), and again
+ * whenever the app regains focus after a brief background idle.
  *
  * Uses the persisted sessionToken to sync attendance seamlessly.
  */
@@ -14,8 +14,8 @@ import { useStore } from "@/store";
 import { SyncEngine } from "@/services/sync/engine";
 import { ChalkpadBridgePayload } from "@/services/sync/types";
 
-const SESSION_FLAG = "presynce:startup_sync_done";
-const IDLE_THRESHOLD_MS = 30 * 60 * 1000; // 30 minutes
+// Brief throttle (10 seconds) to prevent rapid visibility toggle spam
+const IDLE_THRESHOLD_MS = 10 * 1000;
 
 export function useStartupSync() {
   const { subjects, mergeSubjectAttendance, setSyncMeta, addSubject } = useStore();
@@ -23,9 +23,9 @@ export function useStartupSync() {
   subjectsRef.current = subjects;
 
   const doSync = async () => {
-    // Re-read sessionToken directly from store
-    const { sessionToken } = useStore.getState();
-    if (!sessionToken) return; // Not yet connected or missing token
+    const state = useStore.getState();
+    if (!state.sessionToken) return; // Not yet connected or missing token
+    if (state.syncMeta.status === "syncing") return; // Prevent concurrent overlaps
 
     setSyncMeta({ status: "syncing" });
 
@@ -33,7 +33,7 @@ export function useStartupSync() {
       const res = await fetch("/api/chalkpad/sync", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sessionToken }),
+        body: JSON.stringify({ sessionToken: state.sessionToken }),
       });
 
       const data = await res.json();
@@ -83,13 +83,10 @@ export function useStartupSync() {
   };
 
   useEffect(() => {
-    // Once per browser session (clears on tab close)
-    if (!sessionStorage.getItem(SESSION_FLAG)) {
-      sessionStorage.setItem(SESSION_FLAG, "1");
-      doSync();
-    }
+    // Unconditionally sync on mount (app load / hard reload)
+    doSync();
 
-    // Re-sync if app was backgrounded for 30+ minutes
+    // Re-sync if app was backgrounded for longer than the idle threshold
     let hiddenAt: number | null = null;
     const onVisibilityChange = () => {
       if (document.visibilityState === "hidden") {
