@@ -18,22 +18,31 @@ import { ChalkpadBridgePayload } from "@/services/sync/types";
 const IDLE_THRESHOLD_MS = 10 * 1000;
 
 export function useStartupSync() {
-  const { subjects, mergeSubjectAttendance, setSyncMeta, addSubject } = useStore();
+  const { subjects, mergeSubjectAttendance, setSyncMeta, addSubject, sessionToken } = useStore();
   const subjectsRef = useRef(subjects);
   subjectsRef.current = subjects;
 
-  const doSync = async () => {
-    const state = useStore.getState();
-    if (!state.sessionToken) return; // Not yet connected or missing token
-    if (state.syncMeta.status === "syncing") return; // Prevent concurrent overlaps
+  // FIX 2: Runtime-local concurrency guard
+  // We use this local ref to prevent overlapping network requests instead of
+  // relying on `syncMeta.status`, which persists to localStorage and can get stuck.
+  const isFetching = useRef(false);
 
+  // Track if we've fired the one-time startup sync for this session
+  const hasRunStartup = useRef(false);
+
+  const doSync = async () => {
+    const currentToken = useStore.getState().sessionToken;
+    if (!currentToken) return; // Not yet connected or missing token
+    if (isFetching.current) return; // Prevent concurrent overlaps at runtime
+
+    isFetching.current = true;
     setSyncMeta({ status: "syncing" });
 
     try {
       const res = await fetch("/api/chalkpad/sync", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sessionToken: state.sessionToken }),
+        body: JSON.stringify({ sessionToken: currentToken }),
       });
 
       const data = await res.json();
@@ -79,13 +88,23 @@ export function useStartupSync() {
         status: "error",
         error: err instanceof Error ? err.message : "Auto-sync failed",
       });
+    } finally {
+      isFetching.current = false;
     }
   };
 
+  // FIX 1: Zustand hydration subscription
+  // We subscribe to sessionToken so this effect reliably triggers the exact
+  // moment it gets restored from localStorage by Zustand.
   useEffect(() => {
-    // Unconditionally sync on mount (app load / hard reload)
-    doSync();
+    if (!hasRunStartup.current && sessionToken) {
+      hasRunStartup.current = true;
+      doSync();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionToken]);
 
+  useEffect(() => {
     // Re-sync if app was backgrounded for longer than the idle threshold
     let hiddenAt: number | null = null;
     const onVisibilityChange = () => {
