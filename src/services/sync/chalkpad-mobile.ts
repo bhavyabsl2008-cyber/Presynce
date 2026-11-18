@@ -1,5 +1,6 @@
 import crypto from "crypto";
 import { ChalkpadBridgePayload } from "./types";
+import { ChalkpadError } from "./chalkpad-errors";
 
 // ============================================================================
 // CHALKPAD MOBILE API SERVICE
@@ -314,18 +315,18 @@ export class ChalkpadMobileService {
     });
 
     if (!res.ok) {
-      throw new Error(`Attendance request failed with HTTP ${res.status}.`);
+      throw new ChalkpadError(res.status === 401 || res.status === 403 ? "auth" : "upstream", `Attendance request failed with HTTP ${res.status}.`, res.status);
     }
 
     let json;
     try {
       json = await res.json();
     } catch {
-      throw new Error("Chalkpad commonPage returned invalid JSON.");
+      throw new ChalkpadError("malformed", "Chalkpad commonPage returned invalid JSON.");
     }
 
     if (!json.content) {
-      throw new Error("Chalkpad commonPage returned no attendance content.");
+      throw new ChalkpadError("empty", "Chalkpad commonPage returned no attendance content.");
     }
 
     return String(json.content);
@@ -373,7 +374,7 @@ export class ChalkpadMobileService {
   private static parseAttendanceHtml(html: string): { payloads: ChalkpadBridgePayload[], dataAsOf: string } {
     const boxParts = html.split(/<div\s+class\s*=\s*['"]tt-box-new['"][^>]*>/i);
     if (boxParts.length < 2) {
-      throw new Error("Attendance HTML was received but no subject boxes were found.");
+      throw new ChalkpadError("parse", "Attendance HTML was received but no subject boxes were found.");
     }
 
     const payloads: ChalkpadBridgePayload[] = [];
@@ -426,7 +427,7 @@ export class ChalkpadMobileService {
     }
 
     if (payloads.length === 0) {
-      throw new Error("Attendance HTML was returned but no subjects could be parsed.");
+      throw new ChalkpadError("parse", "Attendance HTML was returned but no subjects could be parsed.");
     }
 
     return { payloads, dataAsOf };
