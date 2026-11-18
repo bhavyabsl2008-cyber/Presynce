@@ -30,7 +30,11 @@ export function computeAttendanceReading(snapshot: AttendanceSnapshot | null, re
   const t = threshold / 100;
   
   if (held > 0 || remainingClasses > 0) {
-    classesToRecover = Math.max(0, Math.ceil((t * held - effectiveAttended) / (1 - t)));
+    // Integer arithmetic (threshold is a whole percentage) avoids floating-point
+    // errors at exact boundaries; falls back to the float form otherwise.
+    classesToRecover = Number.isInteger(threshold) && threshold < 100
+      ? Math.max(0, Math.ceil((threshold * held - 100 * effectiveAttended) / (100 - threshold)))
+      : Math.max(0, Math.ceil((t * held - effectiveAttended) / (1 - t)));
     const s = Math.floor(effectiveAttended + remainingClasses - t * (held + remainingClasses));
     canStillMiss = Math.max(0, Math.min(s, remainingClasses));
   }
@@ -54,6 +58,65 @@ export function computeAttendanceReading(snapshot: AttendanceSnapshot | null, re
   }
 
   return { percentage, status, canStillMiss, classesToRecover, bestCasePercentage, worstCasePercentage };
+}
+
+export interface SimulatedAttendanceResult {
+  reading: AttendanceReading;
+  projectedAttended: number;
+  projectedHeld: number;
+  remainingAfterSimulation: number | null;
+  isModified: boolean;
+  isRecoveryPossible: boolean;
+}
+
+/**
+ * Pure hypothetical simulator that combines additional attended and skipped
+ * lectures on top of a snapshot without mutating the underlying attendance data.
+ */
+export function simulateAttendanceProjection(
+  snapshot: AttendanceSnapshot | null,
+  simulatedAttended: number,
+  simulatedSkipped: number,
+  remainingClasses?: number | null
+): SimulatedAttendanceResult | null {
+  if (!snapshot) return null;
+
+  const safeAttended = Math.max(0, Math.floor(simulatedAttended));
+  const safeSkipped = Math.max(0, Math.floor(simulatedSkipped));
+  const totalSimulated = safeAttended + safeSkipped;
+
+  const projectedAttended = snapshot.effectiveAttended + safeAttended;
+  const projectedHeld = snapshot.held + totalSimulated;
+  const remainingAfterSimulation =
+    remainingClasses !== null && remainingClasses !== undefined
+      ? Math.max(0, remainingClasses - totalSimulated)
+      : null;
+
+  const reading = computeAttendanceReading(
+    {
+      effectiveAttended: projectedAttended,
+      held: projectedHeld,
+      threshold: snapshot.threshold,
+      ordinaryAttended: snapshot.ordinaryAttended ?? 0,
+      dl: snapshot.dl ?? 0,
+      ml: snapshot.ml ?? 0,
+    },
+    remainingAfterSimulation ?? 0
+  );
+
+  const isRecoveryPossible =
+    remainingAfterSimulation === null
+      ? true
+      : reading.classesToRecover <= remainingAfterSimulation;
+
+  return {
+    reading,
+    projectedAttended,
+    projectedHeld,
+    remainingAfterSimulation,
+    isModified: totalSimulated > 0,
+    isRecoveryPossible,
+  };
 }
 
 /**

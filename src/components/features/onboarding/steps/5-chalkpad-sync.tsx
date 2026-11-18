@@ -4,6 +4,7 @@ import { Subject } from "@/domain/models";
 import { ChalkpadBridgePayload } from "@/services/sync/types";
 import { matchSubject } from "@/services/sync/chalkpad-adapter";
 import { useChalkpadSyncStateMachine } from "@/hooks/useChalkpadSyncStateMachine";
+import { PasswordInput } from "@/components/ui/v2/password-input";
 
 interface Props {
   subjects: Subject[];
@@ -198,7 +199,7 @@ export function StepChalkpadSync({ subjects, onComplete }: Props) {
           </div>
           <form onSubmit={handleSync} className="flex flex-col gap-4 mt-4">
             <input type="text" placeholder="Chalkpad username" value={username} onChange={(e) => setUsername(e.target.value)} className="w-full bg-transparent border border-line px-4 py-3 text-body-strong focus:outline-none focus:border-ink-secondary" autoComplete="username" required />
-            <input type="password" placeholder="Chalkpad password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full bg-transparent border border-line px-4 py-3 text-body-strong focus:outline-none focus:border-ink-secondary" autoComplete="current-password" required />
+            <PasswordInput placeholder="Chalkpad password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" required />
             {error && <div className="text-meta text-danger mt-1">{error}</div>}
             <div className="flex items-center justify-between mt-4">
               <button type="submit" disabled={!username || !password} className="px-8 py-4 bg-ink-v2 text-paper text-micro font-bold tracking-[0.14em] uppercase hover:opacity-90 transition-opacity disabled:opacity-40">

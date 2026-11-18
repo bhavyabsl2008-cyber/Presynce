@@ -7,6 +7,7 @@ import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { useStore } from "@/store";
 import { useRouter } from "next/navigation";
 import { useChalkpadSyncStateMachine } from "@/hooks/useChalkpadSyncStateMachine";
+import { PasswordInput } from "@/components/ui/v2/password-input";
 
 export function YouEnv() {
   const router = useRouter();
@@ -257,12 +258,10 @@ export function YouEnv() {
                   autoComplete="username"
                   required
                 />
-                <input
-                  type="password"
+                <PasswordInput
                   placeholder="Password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full bg-transparent border border-line px-4 py-3 text-body-strong focus:outline-none focus:border-ink-secondary"
                   autoComplete="current-password"
                   required
                 />

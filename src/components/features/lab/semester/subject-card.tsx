@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { SemesterSubject } from "@/domain/types";
-import { computeAttendanceReading } from "@/domain/attendance";
+import { computeAttendanceReading, simulateAttendanceProjection } from "@/domain/attendance";
 import { SemanticStatus, getStatusColor } from "@/components/ui/v2/semantic-status";
 import { CompactThreshold } from "@/components/ui/v2/compact-threshold";
 import Link from "next/link";
@@ -19,22 +19,36 @@ export function SubjectCard({ subject }: { subject: SemesterSubject }) {
 
   const mlRecords = subjectRecords.filter(r => r.sourceEventId && events.some(e => e.id === r.sourceEventId && e.type === "medical_leave"));
   const dlRecords = subjectRecords.filter(r => !mlRecords.includes(r));
-  const [simMode, setSimMode] = useState<"attend" | "skip">("attend");
-  const [simCount, setSimCount] = useState<number>(0);
+  const [simAttended, setSimAttended] = useState<number>(0);
+  const [simSkipped, setSimSkipped] = useState<number>(0);
+  const [customCount, setCustomCount] = useState<string>("");
 
   const reading = computeAttendanceReading(subject.snapshot, subject.remainingClasses || 0);
 
-  const projectedReading = useMemo(() => {
-    if (!subject.snapshot) return null;
-    const { effectiveAttended, held, threshold } = subject.snapshot;
-    if (simCount === 0) return reading;
-    
-    const pAttended = simMode === "attend" ? effectiveAttended + simCount : effectiveAttended;
-    const pHeld = held + simCount;
-    return computeAttendanceReading({ effectiveAttended: pAttended, held: pHeld, threshold, ordinaryAttended: 0, dl: 0, ml: 0 }, Math.max(0, (subject.remainingClasses || 0) - simCount));
-  }, [subject.snapshot, simMode, simCount, reading]);
+  const simulation = useMemo(() => {
+    return simulateAttendanceProjection(
+      subject.snapshot,
+      simAttended,
+      simSkipped,
+      subject.remainingClasses
+    );
+  }, [subject.snapshot, simAttended, simSkipped, subject.remainingClasses]);
 
+  const projectedReading = simulation?.reading ?? null;
   const projectedColor = projectedReading ? getStatusColor(projectedReading) : "text-ink-v2";
+
+  const parsedCustom = Math.max(0, Math.floor(Number(customCount) || 0));
+  const applyBunk = (n: number) => {
+    if (n > 0) setSimSkipped((prev) => prev + n);
+  };
+  const applyAttend = (n: number) => {
+    if (n > 0) setSimAttended((prev) => prev + n);
+  };
+  const resetSimulation = () => {
+    setSimAttended(0);
+    setSimSkipped(0);
+    setCustomCount("");
+  };
 
   return (
     <div className="border border-line bg-paper flex flex-col mb-8 relative">
@@ -143,47 +157,148 @@ export function SubjectCard({ subject }: { subject: SemesterSubject }) {
         </div>
       )}
 
-      {/* Projection Area */}
-      <div className="bg-surface-v2/30 flex flex-col sm:flex-row border-b border-line">
-        <div className="flex border-r border-line sm:border-b-0 border-b">
-          <button 
-            onClick={() => setSimMode("attend")} 
-            className={`px-4 sm:px-6 py-4 md:py-5 text-micro font-bold tracking-[0.14em] uppercase transition-colors flex-1 sm:flex-none ${simMode === 'attend' ? 'bg-ink-v2 text-paper' : 'hover:bg-ink-v2/5 text-ink-secondary'}`}
-          >
-            ATTEND NEXT
-          </button>
-          <button 
-            onClick={() => setSimMode("skip")} 
-            className={`px-4 sm:px-6 py-4 md:py-5 text-micro font-bold tracking-[0.14em] uppercase transition-colors flex-1 sm:flex-none ${simMode === 'skip' ? 'bg-ink-v2 text-paper' : 'hover:bg-ink-v2/5 text-ink-secondary'}`}
-          >
-            SKIP NEXT
-          </button>
+      {/* Hypothetical Manual Attendance Simulator */}
+      <div className="bg-surface-v2/30 flex flex-col lg:flex-row border-b border-line">
+        <div className="flex-1 p-4 sm:px-6 sm:py-4 flex flex-col gap-3 border-b lg:border-b-0 lg:border-r border-line">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <div className="flex items-center gap-2">
+              <span className="text-micro font-bold tracking-[0.18em] uppercase text-ink-tertiary">
+                HYPOTHETICAL SIMULATOR
+              </span>
+              {simulation?.isModified && (
+                <span
+                  data-testid="sim-delta"
+                  className="text-[10px] font-bold tracking-[0.1em] uppercase px-2 py-0.5 border border-line bg-paper text-ink-secondary"
+                  style={{ fontFamily: "var(--font-data)" }}
+                >
+                  {simAttended > 0 ? `+${simAttended} ATTEND` : ""}
+                  {simAttended > 0 && simSkipped > 0 ? " · " : ""}
+                  {simSkipped > 0 ? `-${simSkipped} BUNK` : ""}
+                </span>
+              )}
+            </div>
+            {simulation?.isModified && (
+              <button
+                type="button"
+                onClick={resetSimulation}
+                aria-label="Reset simulation"
+                className="text-micro font-bold tracking-[0.14em] uppercase text-ink-secondary hover:text-ink-v2 border border-line px-3 py-1 bg-paper transition-colors"
+              >
+                RESET
+              </button>
+            )}
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => applyBunk(1)}
+              className="px-3 py-2 min-h-[40px] border border-line bg-paper text-micro font-bold tracking-[0.12em] uppercase text-danger hover:border-danger transition-colors"
+              aria-label="Bunk 1 lecture"
+            >
+              -1 BUNK
+            </button>
+            <button
+              type="button"
+              onClick={() => applyBunk(2)}
+              className="px-3 py-2 min-h-[40px] border border-line bg-paper text-micro font-bold tracking-[0.12em] uppercase text-danger hover:border-danger transition-colors"
+              aria-label="Bunk 2 lectures"
+            >
+              -2 BUNK
+            </button>
+            <button
+              type="button"
+              onClick={() => applyAttend(1)}
+              className="px-3 py-2 min-h-[40px] border border-line bg-paper text-micro font-bold tracking-[0.12em] uppercase text-safe hover:border-safe transition-colors"
+              aria-label="Attend 1 lecture"
+            >
+              +1 ATTEND
+            </button>
+            <button
+              type="button"
+              onClick={() => applyAttend(2)}
+              className="px-3 py-2 min-h-[40px] border border-line bg-paper text-micro font-bold tracking-[0.12em] uppercase text-safe hover:border-safe transition-colors"
+              aria-label="Attend 2 lectures"
+            >
+              +2 ATTEND
+            </button>
+
+            <div className="flex items-center gap-1.5 ml-auto">
+              <input
+                type="number"
+                min={1}
+                step={1}
+                inputMode="numeric"
+                placeholder="Custom"
+                value={customCount}
+                onChange={(e) => setCustomCount(e.target.value)}
+                aria-label="Custom lecture count"
+                className="w-20 min-h-[40px] bg-paper border border-line px-2.5 py-1.5 text-meta font-bold tabular-nums text-ink-v2 focus:outline-none focus:border-ink-secondary"
+                style={{ fontFamily: "var(--font-data)" }}
+              />
+              <button
+                type="button"
+                disabled={parsedCustom <= 0}
+                onClick={() => {
+                  applyBunk(parsedCustom);
+                  setCustomCount("");
+                }}
+                aria-label="Apply custom bunk"
+                className="px-3 py-2 min-h-[40px] border border-line bg-paper text-micro font-bold tracking-[0.12em] uppercase text-danger hover:border-danger transition-colors disabled:opacity-40"
+              >
+                BUNK
+              </button>
+              <button
+                type="button"
+                disabled={parsedCustom <= 0}
+                onClick={() => {
+                  applyAttend(parsedCustom);
+                  setCustomCount("");
+                }}
+                aria-label="Apply custom attend"
+                className="px-3 py-2 min-h-[40px] border border-line bg-paper text-micro font-bold tracking-[0.12em] uppercase text-safe hover:border-safe transition-colors disabled:opacity-40"
+              >
+                ATTEND
+              </button>
+            </div>
+          </div>
         </div>
 
-        <div className="flex items-center flex-1 justify-between px-4 sm:px-6 py-4 border-b sm:border-b-0 border-line sm:border-r">
-           <div className="flex items-center gap-4">
-             <button 
-                onClick={() => setSimCount(Math.max(0, simCount - 1))} 
-                className="w-10 h-10 flex items-center justify-center border border-line rounded-full hover:border-ink-v2 hover:text-ink-v2 text-ink-tertiary transition-colors text-lg" 
-                aria-label="Decrease classes"
-             >-</button>
-             <span className="w-12 text-center text-xl font-bold tabular-nums text-ink-v2" style={{ fontFamily: "var(--font-data)" }}>{simCount}</span>
-             <button 
-                onClick={() => setSimCount(simCount + 1)} 
-                className="w-10 h-10 flex items-center justify-center border border-line rounded-full hover:border-ink-v2 hover:text-ink-v2 text-ink-tertiary transition-colors text-lg" 
-                aria-label="Increase classes"
-             >+</button>
-           </div>
-           <span className="text-micro font-bold tracking-[0.18em] uppercase text-ink-tertiary">CLASSES</span>
-        </div>
-
-        <div className="px-4 sm:px-6 py-4 flex flex-col justify-center items-end min-w-[160px] bg-paper shrink-0">
-           <span className="text-[10px] font-bold tracking-[0.1em] uppercase text-ink-tertiary mb-1">PROJECTED</span>
-           <div className="flex items-baseline gap-2">
-             <span className={`text-[1.75rem] font-bold tabular-nums leading-none ${projectedColor}`} style={{ fontFamily: "var(--font-data)" }}>
-               {projectedReading ? projectedReading.percentage.toFixed(1) : "0.0"}%
-             </span>
-           </div>
+        <div className="px-4 sm:px-6 py-4 flex flex-col justify-center items-end min-w-[220px] bg-paper shrink-0">
+          <span className="text-[10px] font-bold tracking-[0.1em] uppercase text-ink-tertiary mb-1">
+            {simulation?.isModified ? "PROJECTED (HYPOTHETICAL)" : "PROJECTED"}
+          </span>
+          <div className="flex items-baseline gap-2">
+            <span
+              data-testid="projected-percentage"
+              className={`text-[1.75rem] font-bold tabular-nums leading-none ${projectedColor}`}
+              style={{ fontFamily: "var(--font-data)" }}
+            >
+              {projectedReading ? projectedReading.percentage.toFixed(1) : "0.0"}%
+            </span>
+          </div>
+          {simulation && (
+            <span
+              data-testid="projected-counts"
+              className="text-micro font-bold tracking-[0.1em] uppercase text-ink-tertiary mt-1 tabular-nums"
+              style={{ fontFamily: "var(--font-data)" }}
+            >
+              {simulation.projectedAttended} / {simulation.projectedHeld} CLASSES
+            </span>
+          )}
+          {projectedReading && subject.snapshot && (
+            <span
+              data-testid="projected-recovery"
+              className="text-micro font-bold tracking-[0.1em] uppercase text-ink-secondary mt-1 text-right"
+              style={{ fontFamily: "var(--font-data)" }}
+            >
+              {projectedReading.classesToRecover === 0
+                ? `TARGET ${subject.snapshot.threshold}% MET`
+                : simulation && !simulation.isRecoveryPossible
+                  ? `NEEDS ${projectedReading.classesToRecover} MORE IN A ROW (UNREACHABLE IN ${simulation.remainingAfterSimulation} LEFT)`
+                  : `NEEDS ${projectedReading.classesToRecover} MORE IN A ROW TO REACH ${subject.snapshot.threshold}%`}
+            </span>
+          )}
         </div>
       </div>
 
