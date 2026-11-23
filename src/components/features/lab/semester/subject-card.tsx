@@ -223,17 +223,17 @@ export function SubjectCard({ subject }: { subject: SemesterSubject }) {
               +2 ATTEND
             </button>
 
-            <div className="flex items-center gap-1.5 ml-auto">
+            <div className="flex flex-wrap items-center gap-1.5 sm:ml-auto">
               <input
                 type="number"
                 min={1}
                 step={1}
                 inputMode="numeric"
-                placeholder="Custom"
+                placeholder="CUSTOM"
                 value={customCount}
                 onChange={(e) => setCustomCount(e.target.value)}
                 aria-label="Custom lecture count"
-                className="w-20 min-h-[40px] bg-paper border border-line px-2.5 py-1.5 text-meta font-bold tabular-nums text-ink-v2 focus:outline-none focus:border-ink-secondary"
+                className="w-28 min-w-[7rem] min-h-[40px] bg-paper border border-line px-3 py-1.5 text-micro font-bold tracking-[0.08em] tabular-nums text-ink-v2 placeholder:text-ink-tertiary focus:outline-none focus:border-ink-secondary [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                 style={{ fontFamily: "var(--font-data)" }}
               />
               <button
